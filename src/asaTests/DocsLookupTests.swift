@@ -95,4 +95,12 @@ struct DocsLookupTests {
         #expect(DocsLookup
             .pageName(object: "CampaignCreate.DailyBudget") == "campaigncreate/dailybudget-data.dictionary")
     }
+
+    @Test("An object shown by name doesn't expand a property that refers back to itself")
+    func showRecursiveObject() async throws {
+        let result = try await Self.json(Self.lookup.show(object: "CampaignCreate"))
+        let properties = try #require(result["properties"] as? [String: [String: Any]])
+        #expect(properties["parent"]?["type"] as? String == "CampaignCreate")
+        #expect(properties["parent"]?["properties"] == nil)
+    }
 }

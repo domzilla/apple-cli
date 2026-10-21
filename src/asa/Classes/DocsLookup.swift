@@ -66,9 +66,10 @@ struct DocsLookup {
 
     /// The fields or values of a data object, such as `CampaignCreate` or `CampaignStatus`.
     func show(object name: String) async throws -> String {
-        let page = try await DocsPage(self.loadPage(Self.pageName(object: name)))
+        let pageName = Self.pageName(object: name)
+        let page = try await DocsPage(self.loadPage(pageName))
         var result: [String: Any] = ["object": page.title, "summary": page.abstract]
-        try await result.merge(self.resolve(page: page, depth: 0, seen: [page.title])) { $1 }
+        try await result.merge(self.resolve(page: page, depth: 0, seen: [pageName])) { $1 }
         return try Self.json(result)
     }
 
