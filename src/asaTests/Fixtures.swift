@@ -26,11 +26,21 @@ enum Fixtures {
         )
     }
 
-    static func decodeJWTPart(_ part: Substring) throws -> [String: Any] {
+    static func decodeBase64URL(_ part: Substring) throws -> Data {
         var base64 = part.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
         base64 += String(repeating: "=", count: (4 - base64.count % 4) % 4)
-        let data = try #require(Data(base64Encoded: base64))
-        return try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        return try #require(Data(base64Encoded: base64))
+    }
+
+    static func decodeJWTPart(_ part: Substring) throws -> [String: Any] {
+        try #require(JSONSerialization.jsonObject(with: self.decodeBase64URL(part)) as? [String: Any])
+    }
+
+    static func hasValidES256Signature(_ token: String, key: P256.Signing.PublicKey) throws -> Bool {
+        let parts = token.split(separator: ".", omittingEmptySubsequences: false)
+        try #require(parts.count == 3)
+        let signature = try P256.Signing.ECDSASignature(rawRepresentation: self.decodeBase64URL(parts[2]))
+        return key.isValidSignature(signature, for: Data("\(parts[0]).\(parts[1])".utf8))
     }
 
     static func json(_ data: Data) throws -> [String: Any] {

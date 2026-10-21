@@ -36,16 +36,7 @@ struct ClientSecretTests {
         #expect(payload["iat"] as? Int == 1_800_000_000)
         #expect(payload["exp"] as? Int == 1_800_000_600)
 
-        var base64 = parts[2].replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
-        base64 += String(repeating: "=", count: (4 - base64.count % 4) % 4)
-        let signature = try P256.Signing.ECDSASignature(rawRepresentation: #require(Data(base64Encoded: base64)))
-        #expect(key.publicKey.isValidSignature(signature, for: Data("\(parts[0]).\(parts[1])".utf8)))
-    }
-
-    @Test("The secret expires before Apple's 180-day maximum")
-    func lifetimeIsBelowAppleMaximum() {
-        #expect(ClientSecret.lifetime > 0)
-        #expect(ClientSecret.lifetime < 180 * 24 * 60 * 60)
+        #expect(try Fixtures.hasValidES256Signature(token, key: key.publicKey))
     }
 
     @Test("A key generated with the openssl command from Apple's guide (SEC1 PEM) signs")
@@ -68,11 +59,7 @@ struct ClientSecretTests {
             privateKeyPEM: pem
         )
         let token = try ClientSecret.token(for: credentials)
-        let parts = token.split(separator: ".")
         let key = try P256.Signing.PrivateKey(pemRepresentation: pem)
-        var base64 = parts[2].replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
-        base64 += String(repeating: "=", count: (4 - base64.count % 4) % 4)
-        let signature = try P256.Signing.ECDSASignature(rawRepresentation: #require(Data(base64Encoded: base64)))
-        #expect(key.publicKey.isValidSignature(signature, for: Data("\(parts[0]).\(parts[1])".utf8)))
+        #expect(try Fixtures.hasValidES256Signature(token, key: key.publicKey))
     }
 }

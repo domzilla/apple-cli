@@ -3,11 +3,10 @@ id: '261021-0ZG5YV9'
 title: 'asa: clean up ClientSecret tests'
 author: Dominic Rodemer
 created_at: '2026-10-21T08:57:41.168307Z'
-status: open
+status: closed
 labels:
 - test
 ---
-
 
 
 In `src/asaTests/ClientSecretTests.swift`:
