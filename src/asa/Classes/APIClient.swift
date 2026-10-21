@@ -27,6 +27,9 @@ struct APIClient {
 
     let adAccountID: Credentials.AdAccountID
     let tokens: AccessTokenProvider
+    var load: @Sendable (URLRequest) async throws -> (Data, URLResponse) = {
+        try await URLSession.uncached.data(for: $0)
+    }
 
     // MARK: Public
 
@@ -48,7 +51,7 @@ struct APIClient {
         while true {
             let token = try await self.tokens.token()
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            let (data, response) = try await URLSession.uncached.data(for: request)
+            let (data, response) = try await self.load(request)
             let http = response as! HTTPURLResponse
 
             if http.statusCode == 401, !hasRenewedToken {

@@ -3,11 +3,10 @@ id: '261021-0ZG504F'
 title: 'asa: cover AccessTokenProvider, Docs.buildIndex and the 401 retry'
 author: Dominic Rodemer
 created_at: '2026-10-21T08:57:41.186174Z'
-status: open
+status: closed
 labels:
 - test
 ---
-
 
 
 Untested logic:
