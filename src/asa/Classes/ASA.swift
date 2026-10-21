@@ -20,6 +20,9 @@ enum ASA {
       asa agent status
       asa agent stop
       asa <GET|POST|PUT|DELETE> <path> [options]
+      asa spec find <term>...
+      asa spec show <METHOD> <path>
+      asa spec show <Object>
 
     AGENT
       Requests go through a background agent that holds the API key in memory. Starting it reads the key from
@@ -34,6 +37,11 @@ enum ASA {
       --out <file>         Write the response to a file instead of stdout
 
     <path> is /v1/... with an optional query, or a full https://\(APIClient.host) URL.
+
+    SPEC
+      Apple publishes no OpenAPI spec for this API, so `spec` reads Apple's documentation pages (cached 24h).
+      `show <METHOD> <path>` prints parameters, the request body's fields and the response types;
+      `show <Object>` prints a data object's fields or an enumeration's values, e.g. CampaignCreate.
 
     EXIT CODES
       0 ok · \(CLIError.failure("").exitCode) API or other error · \(CLIError.usage("").exitCode) usage · \
@@ -68,11 +76,32 @@ enum ASA {
                 },
                 makeServer: { Server(credentials: $0) }
             )
+        case "spec":
+            try await self.runSpec(Array(arguments.dropFirst()))
         default:
             guard let method = HTTPMethod(argument: command) else {
                 throw CLIError.usage("unknown command '\(command)'\n\n\(self.usage)")
             }
             try CLI.runRequest(self.agent, method: method.rawValue, Array(arguments.dropFirst()))
+        }
+    }
+
+    private static func runSpec(_ arguments: [String]) async throws {
+        let lookup = try await DocsLookup(endpoints: Docs.shared.index(), loadPage: Docs.shared.page)
+        switch arguments.first {
+        case "find":
+            let terms = Array(arguments.dropFirst())
+            guard !terms.isEmpty else {
+                throw CLIError.usage("usage: asa spec find <term>...")
+            }
+            let lines = lookup.find(terms)
+            CLI.write(lines.isEmpty ? "no matches\n" : lines.joined(separator: "\n") + "\n")
+        case "show" where arguments.count == 3:
+            try await CLI.write(lookup.show(method: arguments[1], path: arguments[2]) + "\n")
+        case "show" where arguments.count == 2:
+            try await CLI.write(lookup.show(object: arguments[1]) + "\n")
+        default:
+            throw CLIError.usage("usage: asa spec find <term>... | show <METHOD> <path> | show <Object>")
         }
     }
 }

@@ -13,7 +13,7 @@
 ## Layout
 - `src/AppleCLIKit`: shared library: background agent, Unix socket, 1Password, ES256 signing, request command plumbing, `Info.plist` (one version for both tools).
 - `src/asc`: App Store Connect client, blocklist and spec gate.
-- `src/asa`: Apple Ads client: OAuth access tokens, `X-AP-Context`, pagination of `/query` endpoints.
+- `src/asa`: Apple Ads client: OAuth access tokens, `X-AP-Context`, pagination of `/query` endpoints, and `asa spec find/show` built from Apple's DocC documentation JSON (no OpenAPI spec is published), cached in `~/Library/Caches/asa/docs/`.
 - Each tool runs its own agent (`~/Library/Caches/asc/`, `~/Library/Caches/asa/`), so both can run at once.
 
 ## Guides (MANDATORY)
