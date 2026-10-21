@@ -144,4 +144,59 @@ struct DocsTests {
         let url = docs.cacheDirectory.appendingPathComponent(Docs.indexFileName)
         #expect(try JSONDecoder().decode([DocsEndpoint].self, from: Data(contentsOf: url)) == [endpoint])
     }
+
+    @Test("Status reports a fresh cached index's endpoint count and build time without a download")
+    func statusFromCache() async throws {
+        let docs = try Self.docs()
+        defer { try? FileManager.default.removeItem(at: docs.cacheDirectory) }
+        let endpoints = [
+            DocsEndpoint(method: "GET", path: "/v1/acls", title: "Get User ACL", page: "get-acls"),
+            DocsEndpoint(method: "GET", path: "/v1/me", title: "Get Me Details", page: "get-me"),
+        ]
+        let url = docs.cacheDirectory.appendingPathComponent(Docs.indexFileName)
+        try JSONEncoder().encode(endpoints).write(to: url)
+        let builtAt = Date(timeIntervalSince1970: (Date().timeIntervalSince1970 - 3600).rounded())
+        try FileManager.default.setAttributes([.modificationDate: builtAt], ofItemAtPath: url.path)
+        let status = try await docs.status()
+        #expect(status.endpointCount == 2)
+        #expect(status.builtAt == builtAt)
+    }
+
+    @Test("A forced check downloads fresh cached pages again and rebuilds a fresh index")
+    func forcedCheck() async throws {
+        let docs = try Self.docs(failingWith: 404)
+        defer { try? FileManager.default.removeItem(at: docs.cacheDirectory) }
+        let url = docs.cacheDirectory.appendingPathComponent(Docs.indexFileName)
+        let old = DocsEndpoint(method: "GET", path: "/v1/me", title: "Get Me Details", page: "get-me")
+        try JSONEncoder().encode([old]).write(to: url)
+        // A cached root page without topics would yield no endpoints, so the rebuild must download it.
+        try Data(#"{"topicSections":[]}"#.utf8)
+            .write(to: docs.cacheDirectory.appendingPathComponent(Docs.rootFileName))
+        let start = Date()
+        let status = try await docs.status(shouldForceCheck: true)
+        let endpoint = DocsEndpoint(
+            method: "POST",
+            path: "/v1/campaigns",
+            title: "Create a Campaign",
+            page: "post-campaigns"
+        )
+        #expect(status.endpointCount == 1)
+        #expect(status.builtAt.timeIntervalSince(start) > -1)
+        #expect(try JSONDecoder().decode([DocsEndpoint].self, from: Data(contentsOf: url)) == [endpoint])
+    }
+
+    @Test("A failed forced check throws and keeps the cached index")
+    func failedForcedCheck() async throws {
+        let docs = try Self.docs(failingWith: 500)
+        defer { try? FileManager.default.removeItem(at: docs.cacheDirectory) }
+        let url = docs.cacheDirectory.appendingPathComponent(Docs.indexFileName)
+        let cached = try JSONEncoder().encode([
+            DocsEndpoint(method: "GET", path: "/v1/me", title: "Get Me Details", page: "get-me"),
+        ])
+        try cached.write(to: url)
+        await #expect(throws: (any Error).self) {
+            try await docs.status(shouldForceCheck: true)
+        }
+        #expect(try Data(contentsOf: url) == cached)
+    }
 }

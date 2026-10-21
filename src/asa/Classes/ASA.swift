@@ -20,6 +20,7 @@ enum ASA {
       asa agent status
       asa agent stop
       asa <GET|POST|PUT|DELETE> <path> [options]
+      asa spec status [--check]
       asa spec find <term>...
       asa spec show <METHOD> <path>
       asa spec show <Object>
@@ -40,6 +41,7 @@ enum ASA {
 
     SPEC
       Apple publishes no OpenAPI spec for this API, so `spec` reads Apple's documentation pages (cached 24h).
+      `status` prints the endpoint index's size and build time; `--check` downloads the pages and rebuilds it now.
       `show <METHOD> <path>` prints parameters, the request body's fields and the response types;
       `show <Object>` prints a data object's fields or an enumeration's values, e.g. CampaignCreate.
 
@@ -90,6 +92,13 @@ enum ASA {
 
     private static func runSpec(_ arguments: [String]) async throws {
         switch arguments.first {
+        case "status" where arguments.count == 1 || arguments.count == 2 && arguments[1] == "--check":
+            let status = try await Docs.shared.status(shouldForceCheck: arguments.count == 2)
+            CLI.write("""
+            endpoints: \(status.endpointCount)
+            built:     \(ISO8601DateFormatter().string(from: status.builtAt))
+
+            """)
         case "find":
             let terms = Array(arguments.dropFirst())
             guard !terms.isEmpty else {
@@ -104,7 +113,9 @@ enum ASA {
             let lookup = DocsLookup(endpoints: [], loadPage: Docs.shared.page)
             try await CLI.write(lookup.show(object: arguments[1]) + "\n")
         default:
-            throw CLIError.usage("usage: asa spec find <term>... | show <METHOD> <path> | show <Object>")
+            throw CLIError.usage(
+                "usage: asa spec status [--check] | find <term>... | show <METHOD> <path> | show <Object>"
+            )
         }
     }
 

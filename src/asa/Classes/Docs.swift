@@ -19,6 +19,11 @@ struct Docs: Sendable {
     static let pagesDirectoryName = "pages"
     static let maxConcurrentDownloads = 8
 
+    struct Status {
+        let endpointCount: Int
+        let builtAt: Date
+    }
+
     static let shared = Docs(
         cacheDirectory: FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("asa/docs"),
@@ -31,11 +36,12 @@ struct Docs: Sendable {
 
     // MARK: Public
 
-    /// Every endpoint, from the endpoint pages linked by the documentation's topics.
-    func index() async throws -> [DocsEndpoint] {
+    /// Every endpoint, from the endpoint pages linked by the documentation's topics. A forced rebuild downloads
+    /// every page again and fails instead of falling back to the cache.
+    func index(shouldForceRebuild: Bool = false) async throws -> [DocsEndpoint] {
         let url = self.cacheDirectory.appendingPathComponent(Self.indexFileName)
         if
-            self.isFresh(url), let endpoints = try? JSONDecoder().decode(
+            !shouldForceRebuild, self.isFresh(url), let endpoints = try? JSONDecoder().decode(
                 [DocsEndpoint].self,
                 from: Data(contentsOf: url)
             )
@@ -43,16 +49,26 @@ struct Docs: Sendable {
             return endpoints
         }
         do {
-            let endpoints = try await self.buildIndex()
+            let endpoints = try await self.buildIndex(shouldForceDownload: shouldForceRebuild)
             try self.createCacheDirectory()
             try JSONEncoder().encode(endpoints).write(to: url, options: .atomic)
             return endpoints
         } catch {
-            guard let endpoints = try? JSONDecoder().decode([DocsEndpoint].self, from: Data(contentsOf: url)) else {
+            guard
+                !shouldForceRebuild,
+                let endpoints = try? JSONDecoder().decode([DocsEndpoint].self, from: Data(contentsOf: url)) else
+            {
                 throw error
             }
             return endpoints
         }
+    }
+
+    func status(shouldForceCheck: Bool = false) async throws -> Status {
+        let endpoints = try await self.index(shouldForceRebuild: shouldForceCheck)
+        let url = self.cacheDirectory.appendingPathComponent(Self.indexFileName)
+        let builtAt = try FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date
+        return Status(endpointCount: endpoints.count, builtAt: builtAt ?? .distantPast)
     }
 
     /// One page, such as `post-campaigns` or `campaigncreate/dailybudget-data.dictionary`.
@@ -62,7 +78,7 @@ struct Docs: Sendable {
 
     // MARK: Private
 
-    private func pageData(_ name: String) async throws -> Data {
+    private func pageData(_ name: String, shouldForceDownload: Bool = false) async throws -> Data {
         guard
             name.isEmpty || name.range(of: "^[a-z0-9_.()-]+(/[a-z0-9_.()-]+)*$", options: .regularExpression) != nil,
             !name.split(separator: "/").contains("..") else
@@ -74,7 +90,10 @@ struct Docs: Sendable {
             ? self.cacheDirectory.appendingPathComponent(Self.rootFileName)
             : self.cacheDirectory.appendingPathComponent(Self.pagesDirectoryName)
             .appendingPathComponent(name.replacingOccurrences(of: "/", with: "~") + ".json")
-        if self.isFresh(url), let data = try? Data(contentsOf: url), (try? Self.object(data)) != nil {
+        if
+            !shouldForceDownload, self.isFresh(url), let data = try? Data(contentsOf: url),
+            (try? Self.object(data)) != nil
+        {
             return data
         }
         do {
@@ -87,7 +106,7 @@ struct Docs: Sendable {
             try data.write(to: url, options: .atomic)
             return data
         } catch {
-            guard let data = try? Data(contentsOf: url), (try? Self.object(data)) != nil else {
+            guard !shouldForceDownload, let data = try? Data(contentsOf: url), (try? Self.object(data)) != nil else {
                 throw error
             }
             return data
@@ -119,11 +138,15 @@ struct Docs: Sendable {
         return data
     }
 
-    private func buildIndex() async throws -> [DocsEndpoint] {
-        let root = try await self.page("")
+    private func buildIndex(shouldForceDownload: Bool) async throws -> [DocsEndpoint] {
+        let root = try await Self.object(self.pageData("", shouldForceDownload: shouldForceDownload))
         let topics = DocsPage(root).topicPages
-        let endpointPages = try await self.pages(topics).flatMap { DocsPage($0.json).endpointPages }
-        let endpoints = try await self.pages(Array(Set(endpointPages)).sorted()).compactMap { page in
+        let endpointPages = try await self.pages(topics, shouldForceDownload: shouldForceDownload)
+            .flatMap { DocsPage($0.json).endpointPages }
+        let endpoints = try await self.pages(
+            Array(Set(endpointPages)).sorted(),
+            shouldForceDownload: shouldForceDownload
+        ).compactMap { page in
             DocsPage(page.json).endpoint(page: page.name)
         }
         guard !endpoints.isEmpty else {
@@ -134,13 +157,15 @@ struct Docs: Sendable {
 
     /// Downloads pages in parallel, a few at a time. Missing pages are left out, so one broken link doesn't break the
     /// index; any other failure throws, so `index()` keeps the cached index instead of caching a partial one.
-    private func pages(_ names: [String]) async throws -> [(name: String, json: [String: Any])] {
+    private func pages(_ names: [String], shouldForceDownload: Bool) async throws
+        -> [(name: String, json: [String: Any])]
+    {
         let pages = try await withThrowingTaskGroup(of: (String, Data)?.self) { group in
             var results = [(String, Data)]()
             var remaining = names.makeIterator()
             for _ in 0..<Self.maxConcurrentDownloads {
                 if let name = remaining.next() {
-                    group.addTask { try await self.existingPageData(name) }
+                    group.addTask { try await self.existingPageData(name, shouldForceDownload: shouldForceDownload) }
                 }
             }
             while let data = try await group.next() {
@@ -148,7 +173,7 @@ struct Docs: Sendable {
                     results.append(data)
                 }
                 if let name = remaining.next() {
-                    group.addTask { try await self.existingPageData(name) }
+                    group.addTask { try await self.existingPageData(name, shouldForceDownload: shouldForceDownload) }
                 }
             }
             return results
@@ -157,9 +182,9 @@ struct Docs: Sendable {
     }
 
     /// `nil` for a page that doesn't exist (404) or whose name is invalid.
-    private func existingPageData(_ name: String) async throws -> (String, Data)? {
+    private func existingPageData(_ name: String, shouldForceDownload: Bool) async throws -> (String, Data)? {
         do {
-            return try await (name, self.pageData(name))
+            return try await (name, self.pageData(name, shouldForceDownload: shouldForceDownload))
         } catch CLIError.usage {
             return nil
         }
