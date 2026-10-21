@@ -71,7 +71,7 @@ struct APIClient {
 
     /// Requests every page of a `POST .../query` endpoint and merges them into one response.
     func sendPaginated(path: RequestPath, body: Data?) async throws -> Data {
-        var pages = try QueryPages(body: body)
+        var pages = try QueryPages(path: path.path, body: body)
         while let pageBody = try pages.nextBody() {
             try await pages.add(self.send(method: .post, path: path, body: pageBody))
         }

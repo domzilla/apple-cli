@@ -13,18 +13,20 @@ import Foundation
 /// merges the rows. Entity queries return rows in `result`, reports in `result.rows`.
 struct QueryPages {
     private var body: [String: Any]
+    private let isReport: Bool
     private var offset: Int
     private var totalCount: Int?
     private var firstPage: [String: Any]?
     private var rows = [Any]()
     private let startOffset: Int
 
-    init(body: Data?) throws {
+    init(path: String, body: Data?) throws {
         let object = try body.flatMap { $0.isEmpty ? nil : try JSONSerialization.jsonObject(with: $0) } ?? [:]
         guard let body = object as? [String: Any] else {
             throw CLIError.usage("--paginate needs a JSON object body")
         }
         self.body = body
+        self.isReport = path.hasPrefix("/v1/reports/")
         self.startOffset = (body["pagination"] as? [String: Any])?["offset"] as? Int ?? 0
         self.offset = self.startOffset
     }
@@ -39,6 +41,10 @@ struct QueryPages {
         var body = self.body
         var pagination = body["pagination"] as? [String: Any] ?? [:]
         pagination["offset"] = self.offset
+        // Entity queries return totalCount only on request; report pagination has no such field.
+        if !self.isReport {
+            pagination["fetchTotalCount"] = true
+        }
         body["pagination"] = pagination
         return try JSONSerialization.data(withJSONObject: body)
     }
@@ -51,10 +57,7 @@ struct QueryPages {
             throw CLIError.failure("the query response has no result rows to paginate")
         }
         guard let totalCount = (document["pagination"] as? [String: Any])?["totalCount"] as? Int else {
-            throw CLIError.usage(
-                "--paginate needs pagination.totalCount in the response; "
-                    + "add \"fetchTotalCount\": true to the body's pagination"
-            )
+            throw CLIError.failure("--paginate needs pagination.totalCount in the response")
         }
         if self.firstPage == nil {
             self.firstPage = document

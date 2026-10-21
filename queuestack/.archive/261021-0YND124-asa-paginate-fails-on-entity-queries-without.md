@@ -3,11 +3,10 @@ id: '261021-0YND124'
 title: asa --paginate fails on entity queries without fetchTotalCount
 author: Dominic Rodemer
 created_at: '2026-10-21T08:43:25.979945Z'
-status: open
+status: closed
 labels:
 - bug
 ---
-
 
 
 `QueryPages.add` (`src/asa/Classes/QueryPages.swift`) requires `pagination.totalCount`, but Apple's `QueryPaginationResult` only returns it when the request sets `fetchTotalCount: true`. So `asa POST /v1/campaigns/query --paginate` fails after the first page unless the caller adds it. With `asc`, `--paginate` needs nothing extra.

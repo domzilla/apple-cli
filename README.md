@@ -75,7 +75,7 @@ asa agent stop
 - Every request carries `X-AP-Context: adAccountId=<ad_account_id>`, except org-level endpoints (`/v1/me`, `/v1/acls`, `/v1/orgs/{id}`, `/v1/advertiser-resources`, creating ad accounts, and budget order writes).
 - The access token is refreshed before it expires and after a 401. Rate limits (429) are retried with `Retry-After`.
 - Apple publishes no OpenAPI spec for this API, so `asa spec` builds its endpoint index from Apple's documentation pages, cached in `~/Library/Caches/asa/` and refreshed after 24 hours.
-- `--paginate` walks `pagination.offset` of a `POST .../query` request until `totalCount` and merges the rows. Entity queries need `"fetchTotalCount": true` in the body's `pagination`.
+- `--paginate` walks `pagination.offset` of a `POST .../query` request until `totalCount` and merges the rows.
 
 Run `asa --help` for all options and exit codes.
 
