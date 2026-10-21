@@ -12,12 +12,12 @@ import Foundation
 actor AccessTokenProvider {
     static let refreshMargin: TimeInterval = 60
 
-    private let credentials: Credentials
+    private let fetch: @Sendable () async throws -> AccessToken
     private var cached: AccessToken?
     private var pending: Task<AccessToken, any Error>?
 
-    init(credentials: Credentials, token: AccessToken? = nil) {
-        self.credentials = credentials
+    init(token: AccessToken? = nil, fetch: @escaping @Sendable () async throws -> AccessToken) {
+        self.fetch = fetch
         self.cached = token
     }
 
@@ -30,8 +30,8 @@ actor AccessTokenProvider {
         if let pending = self.pending {
             return try await pending.value.value
         }
-        let task = Task { [credentials] in
-            try await AccessToken.fetch(for: credentials)
+        let task = Task { [fetch] in
+            try await fetch()
         }
         self.pending = task
         defer { self.pending = nil }
@@ -40,8 +40,10 @@ actor AccessTokenProvider {
         return token.value
     }
 
-    /// Drops the cached token after the API rejected it.
-    func invalidate() {
-        self.cached = nil
+    /// Drops the cached token after the API rejected it, unless another request has already replaced it.
+    func invalidate(_ rejected: String) {
+        if self.cached?.value == rejected {
+            self.cached = nil
+        }
     }
 }

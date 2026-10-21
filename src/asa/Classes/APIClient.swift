@@ -49,13 +49,14 @@ struct APIClient {
         var attempt = 0
         var hasRenewedToken = false
         while true {
-            try await request.setValue("Bearer \(self.tokens.token())", forHTTPHeaderField: "Authorization")
+            let token = try await self.tokens.token()
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             let (data, response) = try await URLSession.uncached.data(for: request)
             let http = response as! HTTPURLResponse
 
             if http.statusCode == 401, !hasRenewedToken {
                 hasRenewedToken = true
-                await self.tokens.invalidate()
+                await self.tokens.invalidate(token)
                 continue
             }
             if http.statusCode == 429, attempt < Self.maxRateLimitRetries {

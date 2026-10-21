@@ -3,11 +3,10 @@ id: '261021-0YNE8DS'
 title: asa concurrent 401s can invalidate a freshly refreshed token
 author: Dominic Rodemer
 created_at: '2026-10-21T08:43:26.035240Z'
-status: open
+status: closed
 labels:
 - bug
 ---
-
 
 
 `AccessTokenProvider.invalidate()` (`src/asa/Classes/AccessTokenProvider.swift`) clears the cache unconditionally. When several requests get a 401 at once, a late `invalidate()` can drop the token another request just fetched, causing extra token requests.

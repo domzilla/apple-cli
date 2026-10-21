@@ -21,7 +21,9 @@ struct Server: AgentServer {
 
     init(credentials: Credentials, accessToken: AccessToken? = nil) {
         self.credentials = credentials
-        self.tokens = AccessTokenProvider(credentials: credentials, token: accessToken)
+        self.tokens = AccessTokenProvider(token: accessToken) {
+            try await AccessToken.fetch(for: credentials)
+        }
     }
 
     var statusFields: [(label: String, value: String)] {
