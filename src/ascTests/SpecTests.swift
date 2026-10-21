@@ -6,6 +6,7 @@
 //  Copyright © 2026 Dominic Rodemer. All rights reserved.
 //
 
+import AppleCLIKit
 import CryptoKit
 import Foundation
 import os
@@ -43,14 +44,14 @@ struct SpecTests {
     }
 
     static func isSpecGateError(_ error: any Error) -> Bool {
-        guard case .specGate = error as? ASCError else {
+        guard case .specGate = error as? CLIError else {
             return false
         }
         return true
     }
 
     static func isSpecChangedError(_ error: any Error) -> Bool {
-        guard case let .specGate(message) = error as? ASCError else {
+        guard case let .specGate(message) = error as? CLIError else {
             return false
         }
         return message.hasPrefix("Apple's API spec changed")

@@ -34,8 +34,10 @@ jobs:
       - name: Build release binary
         run: swift build -c release
 
-      - name: Verify binary
-        run: .build/release/asc --version
+      - name: Verify binaries
+        run: |
+          .build/release/asc --version
+          .build/release/asa --version
 
       - name: Get version
         id: version
@@ -48,7 +50,7 @@ jobs:
 
           # Create Homebrew-style directory structure
           mkdir -p "$BOTTLE_DIR/bin"
-          cp .build/release/asc "$BOTTLE_DIR/bin/"
+          cp .build/release/asc .build/release/asa "$BOTTLE_DIR/bin/"
 
       - name: Create bottle tarball
         run: |
@@ -162,7 +164,7 @@ jobs:
 
           cat > homebrew-tap/Formula/apple-cli.rb << 'FORMULA'
           class AppleCli < Formula
-            desc "App Store Connect API client for AI agents, with a built-in blocklist"
+            desc "App Store Connect (with a built-in blocklist) and Apple Ads API clients for AI agents"
             homepage "https://github.com/domzilla/apple-cli"
             url "https://github.com/domzilla/apple-cli/archive/refs/tags/TAG_PLACEHOLDER.tar.gz"
             sha256 "SOURCE_SHA_PLACEHOLDER"
@@ -180,11 +182,12 @@ jobs:
 
             def install
               system "swift", "build", "-c", "release", "--disable-sandbox"
-              bin.install ".build/release/asc"
+              bin.install ".build/release/asc", ".build/release/asa"
             end
 
             test do
               assert_match version.to_s, shell_output("#{bin}/asc --version")
+              assert_match version.to_s, shell_output("#{bin}/asa --version")
             end
           end
           FORMULA

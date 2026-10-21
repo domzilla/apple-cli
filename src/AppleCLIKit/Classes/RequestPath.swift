@@ -1,6 +1,6 @@
 //
 //  RequestPath.swift
-//  asc
+//  AppleCLIKit
 //
 //  Created by Dominic Rodemer on 09/10/2026.
 //  Copyright © 2026 Dominic Rodemer. All rights reserved.
@@ -9,50 +9,54 @@
 import Foundation
 
 /// A validated API path plus query. The path is kept strict (no percent-encoding, no dot segments) so the
-/// blocklist sees exactly the resource the server will act on.
-struct RequestPath: Equatable {
-    static let host = "api.appstoreconnect.apple.com"
+/// blocklist sees exactly the resource the server will act on, and requests can only go to the tool's API host.
+public struct RequestPath: Equatable, Sendable {
+    /// The API host every request goes to.
+    public let host: String
+    /// The path, such as `/v1/apps`.
+    public let path: String
+    /// The decoded query parameters.
+    public let queryItems: [URLQueryItem]
 
-    let path: String
-    let queryItems: [URLQueryItem]
-
-    /// Accepts `/v1/apps?limit=200` or a full `https://api.appstoreconnect.apple.com/...` URL, such as a
-    /// pagination link.
-    init(_ raw: String) throws {
+    /// Accepts `/v1/apps?limit=200` or a full `https://<host>/...` URL, such as a pagination link.
+    public init(_ raw: String, host: String) throws {
         var remainder = Substring(raw)
-        let prefix = "https://\(Self.host)/"
+        let prefix = "https://\(host)/"
         if raw.hasPrefix("https://") || raw.hasPrefix("http://") {
             guard raw.hasPrefix(prefix) else {
-                throw ASCError.invalidPath("only https://\(Self.host) is allowed")
+                throw CLIError.invalidPath("only https://\(host) is allowed")
             }
             remainder = raw.dropFirst(prefix.count - 1)
         }
         guard !remainder.contains("#") else {
-            throw ASCError.invalidPath("fragments are not allowed")
+            throw CLIError.invalidPath("fragments are not allowed")
         }
 
         let parts = remainder.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false)
         let path = String(parts[0])
         guard path.range(of: "^/v[0-9]+(/[A-Za-z0-9_.-]+)+$", options: .regularExpression) != nil else {
-            throw ASCError.invalidPath("'\(path)' must look like /v1/resource[/id...] using only A-Z, a-z, 0-9, _ . -")
+            throw CLIError.invalidPath("'\(path)' must look like /v1/resource[/id...] using only A-Z, a-z, 0-9, _ . -")
         }
         guard !path.split(separator: "/").contains(where: { $0 == "." || $0 == ".." }) else {
-            throw ASCError.invalidPath("dot segments are not allowed")
+            throw CLIError.invalidPath("dot segments are not allowed")
         }
+        self.host = host
         self.path = path
         self.queryItems = parts.count > 1 ? try Self.queryItems(String(parts[1])) : []
     }
 
     // MARK: Public
 
-    var segments: [Substring] {
+    /// The path split at `/`, such as `["v1", "apps"]`.
+    public var segments: [Substring] {
         self.path.split(separator: "/")
     }
 
-    var url: URL {
+    /// The full request URL.
+    public var url: URL {
         var components = URLComponents()
         components.scheme = "https"
-        components.host = Self.host
+        components.host = self.host
         components.path = self.path
         if !self.queryItems.isEmpty {
             components.percentEncodedQueryItems = self.queryItems.map {
@@ -75,12 +79,12 @@ struct RequestPath: Equatable {
         try query.split(separator: "&").map { pair in
             let nameValue = pair.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
             guard let name = String(nameValue[0]).removingPercentEncoding, !name.isEmpty else {
-                throw ASCError.invalidPath("malformed query parameter '\(pair)'")
+                throw CLIError.invalidPath("malformed query parameter '\(pair)'")
             }
             var value: String?
             if nameValue.count > 1 {
                 guard let decoded = String(nameValue[1]).removingPercentEncoding else {
-                    throw ASCError.invalidPath("malformed query value in '\(pair)'")
+                    throw CLIError.invalidPath("malformed query value in '\(pair)'")
                 }
                 value = decoded
             }

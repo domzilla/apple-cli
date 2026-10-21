@@ -1,12 +1,20 @@
-# asc - AGENTS.md
+# apple-cli - AGENTS.md
 
 ## Project Overview
-`asc` is a minimal command-line client for the App Store Connect API, built for AI agents. It signs requests, handles pagination, rate limits and report downloads, and refuses blocked operations. The ASC account runs the whole business, so the guardrails in this file come before everything else.
+`apple-cli` ships two minimal command-line clients for Apple's business APIs, built for AI agents:
+- `asc`: App Store Connect API. It signs requests, handles pagination, rate limits and report downloads, and refuses blocked operations. The ASC account runs the whole business, so the guardrails in this file come before everything else.
+- `asa`: Apple Ads Platform API (`api.ads.apple.com/v1`). Full read and write access on purpose: it has no blocklist and no spec gate.
 
 ## Tech Stack
 - **Language**: Swift
-- **Type**: Swift Package (executable)
+- **Type**: Swift Package (two executables)
 - **Platforms**: macOS
+
+## Layout
+- `src/AppleCLIKit`: shared library: background agent, Unix socket, 1Password, ES256 signing, request command plumbing, `Info.plist` (one version for both tools).
+- `src/asc`: App Store Connect client, blocklist and spec gate.
+- `src/asa`: Apple Ads client: OAuth access tokens, `X-AP-Context`, pagination of `/query` endpoints.
+- Each tool runs its own agent (`~/Library/Caches/asc/`, `~/Library/Caches/asa/`), so both can run at once.
 
 ## Guides (MANDATORY)
 Read `~/Agents/Guides/xcode-project-guide.md` in full before planning or editing anything.
@@ -18,7 +26,8 @@ Read these in full before touching the matching code:
 None. Use only Apple frameworks (Foundation, CryptoKit) and system tools (`/usr/bin/gunzip`, 1Password `op`). Never add third-party packages: a compromised dependency could take over the ASC account.
 
 ## Security Rules (MANDATORY)
-- **Keys**: `asc agent start` reads the private key, Key ID and Issuer ID with `op read` and hands them to the background agent through a pipe. Only the agent holds them, in memory, until its TTL ends or `asc agent stop`. Never write the private key to disk, print it, log it or pass it as a command-line argument or environment variable. The Key ID and Issuer ID are not secret.
+The key rule applies to both tools; everything after it applies to `asc` only.
+- **Keys**: `asc agent start` reads the private key, Key ID and Issuer ID with `op read` and hands them to the background agent through a pipe. Only the agent holds them, in memory, until its TTL ends or `asc agent stop`. Never write the private key to disk, print it, log it or pass it as a command-line argument or environment variable. The Key ID and Issuer ID are not secret. `asa agent start` does the same with the Apple Ads private key, Client ID, Team ID, Key ID and Ad Account ID; the agent also holds the OAuth access token, in memory only.
 - **Blocklist**: `Blocklist.swift` is compiled into the binary and is checked before a JWT is created. A blocked request must never be signed or sent, and there is no override flag.
 - **Blocked operations**:
   - changing availability of apps, in-app purchases and subscriptions (includes removing from sale), ending pre-orders
@@ -42,6 +51,7 @@ None. Use only Apple frameworks (Foundation, CryptoKit) and system tools (`/usr/
 
 ## Configuration
 - No environment-variable configuration or defaults. Everything, including the 1Password key references (`op://…`), is passed as arguments.
+- `asa` takes the ad account from the 1Password item (`ad_account_id`), so one item per account.
 
 ## Build Commands
 Build output goes to `--scratch-path`, outside the repo, instead of the default `.build` folder.
@@ -56,4 +66,4 @@ swift package clean --scratch-path /tmp/asc-build
 ## Testing (MANDATORY)
 `swift test --scratch-path /tmp/asc-build`
 
-Tests must never call the live API.
+Tests must never call the live API (App Store Connect, Apple Ads or `appleid.apple.com`).

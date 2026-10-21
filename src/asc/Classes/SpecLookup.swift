@@ -6,6 +6,7 @@
 //  Copyright © 2026 Dominic Rodemer. All rights reserved.
 //
 
+import AppleCLIKit
 import Foundation
 
 /// Endpoint lookups in the cached spec, so agents don't have to read 7 MB of JSON.
@@ -48,7 +49,7 @@ struct SpecLookup {
             let template = self.template(matching: path),
             let operation = self.paths[template]?[method.rawValue.lowercased()] as? [String: Any] else
         {
-            throw ASCError.usage("no \(argument.uppercased()) \(path) in the spec; try `asc spec find <term>`")
+            throw CLIError.usage("no \(argument.uppercased()) \(path) in the spec; try `asc spec find <term>`")
         }
 
         var result: [String: Any] = ["operation": "\(method.rawValue) \(template)"]

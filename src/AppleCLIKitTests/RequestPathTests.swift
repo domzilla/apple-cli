@@ -1,6 +1,6 @@
 //
 //  RequestPathTests.swift
-//  ascTests
+//  AppleCLIKitTests
 //
 //  Created by Dominic Rodemer on 09/10/2026.
 //  Copyright © 2026 Dominic Rodemer. All rights reserved.
@@ -8,13 +8,15 @@
 
 import Foundation
 import Testing
-@testable import asc
+@testable import AppleCLIKit
 
 @Suite("RequestPath")
 struct RequestPathTests {
+    static let host = "api.appstoreconnect.apple.com"
+
     @Test("A plain path keeps its segments")
     func plainPath() throws {
-        let path = try RequestPath("/v1/apps/123/appStoreVersions")
+        let path = try RequestPath("/v1/apps/123/appStoreVersions", host: Self.host)
         #expect(path.path == "/v1/apps/123/appStoreVersions")
         #expect(path.segments == ["v1", "apps", "123", "appStoreVersions"])
         #expect(path.queryItems.isEmpty)
@@ -23,7 +25,10 @@ struct RequestPathTests {
 
     @Test("A full API URL is reduced to its path and query")
     func fullURL() throws {
-        let path = try RequestPath("https://api.appstoreconnect.apple.com/v1/apps?cursor=AB.cd&limit=200")
+        let path = try RequestPath(
+            "https://api.appstoreconnect.apple.com/v1/apps?cursor=AB.cd&limit=200",
+            host: Self.host
+        )
         #expect(path.path == "/v1/apps")
         #expect(path.queryItems == [
             URLQueryItem(name: "cursor", value: "AB.cd"),
@@ -33,7 +38,10 @@ struct RequestPathTests {
 
     @Test("Query parameters are decoded, then re-encoded strictly")
     func queryEncoding() throws {
-        let path = try RequestPath("/v1/salesReports?filter[reportType]=SALES&filter%5Bversion%5D=1_0&x=a+b")
+        let path = try RequestPath(
+            "/v1/salesReports?filter[reportType]=SALES&filter%5Bversion%5D=1_0&x=a+b",
+            host: Self.host
+        )
         #expect(path.queryItems == [
             URLQueryItem(name: "filter[reportType]", value: "SALES"),
             URLQueryItem(name: "filter[version]", value: "1_0"),
@@ -60,8 +68,8 @@ struct RequestPathTests {
         ]
     )
     func rejectsAmbiguousPaths(_ raw: String) {
-        #expect(throws: ASCError.self) {
-            try RequestPath(raw)
+        #expect(throws: CLIError.self) {
+            try RequestPath(raw, host: Self.host)
         }
     }
 
@@ -76,15 +84,25 @@ struct RequestPathTests {
         ]
     )
     func rejectsOtherHosts(_ raw: String) {
-        #expect(throws: ASCError.self) {
-            try RequestPath(raw)
+        #expect(throws: CLIError.self) {
+            try RequestPath(raw, host: Self.host)
+        }
+    }
+
+    @Test("Each tool's host is accepted only by its own paths")
+    func hostIsPerTool() throws {
+        let path = try RequestPath("https://api.ads.apple.com/v1/campaigns/42", host: "api.ads.apple.com")
+        #expect(path.path == "/v1/campaigns/42")
+        #expect(path.url.absoluteString == "https://api.ads.apple.com/v1/campaigns/42")
+        #expect(throws: CLIError.self) {
+            try RequestPath("https://api.ads.apple.com/v1/campaigns/42", host: Self.host)
         }
     }
 
     @Test("Malformed percent-encoding in the query is rejected")
     func rejectsMalformedQuery() {
-        #expect(throws: ASCError.self) {
-            try RequestPath("/v1/apps?filter=%ZZ")
+        #expect(throws: CLIError.self) {
+            try RequestPath("/v1/apps?filter=%ZZ", host: Self.host)
         }
     }
 }

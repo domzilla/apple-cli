@@ -1,6 +1,6 @@
 //
 //  UnixSocket.swift
-//  asc
+//  AppleCLIKit
 //
 //  Created by Dominic Rodemer on 09/10/2026.
 //  Copyright © 2026 Dominic Rodemer. All rights reserved.
@@ -20,7 +20,7 @@ enum UnixSocket {
         try self.open(path) { fd, address, length in
             // The directory is already 0700; chmod instead of umask, which is process-wide.
             guard bind(fd, address, length) == 0, chmod(path, 0o600) == 0, Darwin.listen(fd, 16) == 0 else {
-                throw ASCError.agent("can't listen on \(path): \(String(cString: strerror(errno)))")
+                throw CLIError.agent("can't listen on \(path): \(String(cString: strerror(errno)))")
             }
         }
     }
@@ -28,7 +28,7 @@ enum UnixSocket {
     static func connect(to path: String) throws -> Int32 {
         try self.open(path) { fd, address, length in
             guard Darwin.connect(fd, address, length) == 0 else {
-                throw ASCError.agentNotRunning
+                throw CLIError.agent("can't connect to \(path): \(String(cString: strerror(errno)))")
             }
         }
     }
@@ -48,14 +48,14 @@ enum UnixSocket {
                 continue
             }
             guard count >= 0 else {
-                throw ASCError.agent("read failed: \(String(cString: strerror(errno)))")
+                throw CLIError.agent("read failed: \(String(cString: strerror(errno)))")
             }
             if count == 0 {
                 return data
             }
             data.append(contentsOf: buffer[0..<count])
             guard data.count <= self.maxMessageSize else {
-                throw ASCError.agent("message too large")
+                throw CLIError.agent("message too large")
             }
         }
     }
@@ -69,7 +69,7 @@ enum UnixSocket {
                     continue
                 }
                 guard count > 0 else {
-                    throw ASCError.agent("write failed: \(String(cString: strerror(errno)))")
+                    throw CLIError.agent("write failed: \(String(cString: strerror(errno)))")
                 }
                 offset += count
             }
@@ -102,7 +102,7 @@ enum UnixSocket {
     private static func socket() throws -> Int32 {
         let fd = Darwin.socket(AF_UNIX, SOCK_STREAM, 0)
         guard fd >= 0 else {
-            throw ASCError.agent("can't create socket: \(String(cString: strerror(errno)))")
+            throw CLIError.agent("can't create socket: \(String(cString: strerror(errno)))")
         }
         var noSigPipe: Int32 = 1
         setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &noSigPipe, socklen_t(MemoryLayout<Int32>.size))
@@ -114,7 +114,7 @@ enum UnixSocket {
         address.sun_family = sa_family_t(AF_UNIX)
         let bytes = Array(path.utf8)
         guard bytes.count < MemoryLayout.size(ofValue: address.sun_path) else {
-            throw ASCError.agent("socket path too long: \(path)")
+            throw CLIError.agent("socket path too long: \(path)")
         }
         withUnsafeMutableBytes(of: &address.sun_path) { buffer in
             buffer.copyBytes(from: bytes)

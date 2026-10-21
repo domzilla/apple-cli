@@ -6,6 +6,7 @@
 //  Copyright © 2026 Dominic Rodemer. All rights reserved.
 //
 
+import AppleCLIKit
 import Foundation
 import Testing
 @testable import asc
@@ -34,7 +35,7 @@ struct APIClientTests {
 
     @Test("Corrupt gzip is an error")
     func rejectsCorruptGzip() {
-        #expect(throws: ASCError.self) {
+        #expect(throws: CLIError.self) {
             try APIClient.gunzipIfNeeded(Data([0x1F, 0x8B, 0x00, 0x01]))
         }
     }

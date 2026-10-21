@@ -6,6 +6,7 @@
 //  Copyright © 2026 Dominic Rodemer. All rights reserved.
 //
 
+import AppleCLIKit
 import CryptoKit
 import Foundation
 
@@ -83,10 +84,10 @@ struct Spec {
         do {
             status = try await self.status()
         } catch {
-            throw ASCError.specGate("couldn't check Apple's API spec for updates (\(error))")
+            throw CLIError.specGate("couldn't check Apple's API spec for updates (\(error))")
         }
         guard self.isReviewed(status) else {
-            throw ASCError.specGate(
+            throw CLIError.specGate(
                 "Apple's API spec changed (reviewed \(self.reviewedVersion) \(self.reviewedSHA256.prefix(12)), "
                     + "latest \(status.version) \(status.sha256.prefix(12))). The user must review the new write "
                     + "endpoints against the blocklist and update Spec.reviewedVersion/reviewedSHA256."
@@ -112,7 +113,7 @@ struct Spec {
         } catch where FileManager.default.fileExists(atPath: self.specURL.path) {}
         let data = try Data(contentsOf: self.specURL)
         guard let document = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw ASCError.failure("the cached spec is not a JSON object")
+            throw CLIError.failure("the cached spec is not a JSON object")
         }
         return document
     }
@@ -139,9 +140,9 @@ struct Spec {
     }
 
     private func download() async throws {
-        let (zip, response) = try await APIClient.session.data(from: self.downloadURL)
+        let (zip, response) = try await URLSession.uncached.data(from: self.downloadURL)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-            throw ASCError.failure("downloading the spec failed with \(response)")
+            throw CLIError.failure("downloading the spec failed with \(response)")
         }
 
         let manager = FileManager.default
@@ -156,7 +157,7 @@ struct Spec {
             timeout: 60
         )
         if let message = result.failureMessage {
-            throw ASCError.failure("unzipping the spec failed: \(message)")
+            throw CLIError.failure("unzipping the spec failed: \(message)")
         }
         _ = try self.version(of: result.stdout)
 
@@ -170,7 +171,7 @@ struct Spec {
             let info = document["info"] as? [String: Any],
             let version = info["version"] as? String else
         {
-            throw ASCError.failure("the spec has no info.version")
+            throw CLIError.failure("the spec has no info.version")
         }
         return version
     }

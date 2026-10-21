@@ -1,6 +1,6 @@
 ---
 version_source: plist
-plist_path: src/asc/Resources/Info.plist
+plist_path: src/AppleCLIKit/Resources/Info.plist
 tag_prefix: v
 release_branch: master
 git_remotes:

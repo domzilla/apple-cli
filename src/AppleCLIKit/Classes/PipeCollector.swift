@@ -1,6 +1,6 @@
 //
 //  PipeCollector.swift
-//  asc
+//  AppleCLIKit
 //
 //  Created by Dominic Rodemer on 09/10/2026.
 //  Copyright © 2026 Dominic Rodemer. All rights reserved.

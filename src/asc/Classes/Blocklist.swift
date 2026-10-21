@@ -6,6 +6,7 @@
 //  Copyright © 2026 Dominic Rodemer. All rights reserved.
 //
 
+import AppleCLIKit
 import Foundation
 
 /// Write operations asc refuses to send. Checked before any credentials are loaded or a token is signed; there is

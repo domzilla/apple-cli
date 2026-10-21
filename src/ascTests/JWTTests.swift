@@ -6,6 +6,7 @@
 //  Copyright © 2026 Dominic Rodemer. All rights reserved.
 //
 
+import AppleCLIKit
 import CryptoKit
 import Foundation
 import Testing
@@ -66,7 +67,7 @@ struct JWTTests {
         #expect {
             try JWT.token(for: credentials)
         } throws: { error in
-            guard let error = error as? ASCError, case .credentials = error else {
+            guard let error = error as? CLIError, case .credentials = error else {
                 return false
             }
             return !error.description.contains("SECRET")
@@ -83,23 +84,5 @@ struct JWTTests {
         )
         #expect(!"\(credentials)".contains("SECRET"))
         #expect(!String(reflecting: credentials).contains("SECRET"))
-    }
-
-    @Test(
-        "Only plain 1Password item references are accepted",
-        arguments: ["op://ASC/Item", "op://Vault/Item With Spaces - Admin"]
-    )
-    func acceptsItemReference(_ reference: String) throws {
-        #expect(try Credentials.validatedItemReference(reference) == reference)
-    }
-
-    @Test(
-        "Field references, missing parts and other schemes are rejected",
-        arguments: ["op://ASC/Item/key_id", "op://ASC", "ASC/Item", "op:///Item", "file://ASC/Item"]
-    )
-    func rejectsItemReference(_ reference: String) {
-        #expect(throws: ASCError.self) {
-            try Credentials.validatedItemReference(reference)
-        }
     }
 }

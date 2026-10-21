@@ -1,6 +1,6 @@
 //
 //  ProcessRunner.swift
-//  asc
+//  AppleCLIKit
 //
 //  Created by Dominic Rodemer on 09/10/2026.
 //  Copyright © 2026 Dominic Rodemer. All rights reserved.
@@ -8,14 +8,21 @@
 
 import Foundation
 
-enum ProcessRunner {
-    struct Result {
-        let status: Int32
-        let stdout: Data
-        let stderr: Data
-        let isTimedOut: Bool
+/// Runs a system tool and collects its output.
+public enum ProcessRunner {
+    /// The outcome of a finished (or timed-out and terminated) process.
+    public struct Result {
+        /// The exit status.
+        public let status: Int32
+        /// Everything the process wrote to stdout.
+        public let stdout: Data
+        /// Everything the process wrote to stderr.
+        public let stderr: Data
+        /// Whether the process was terminated because it ran past the timeout.
+        public let isTimedOut: Bool
 
-        var failureMessage: String? {
+        /// `nil` on success, otherwise why the process failed.
+        public var failureMessage: String? {
             if self.isTimedOut {
                 return "timed out"
             }
@@ -26,7 +33,8 @@ enum ProcessRunner {
         }
     }
 
-    static func run(
+    /// Runs the executable, feeding `input` to its stdin, and terminates it after `timeout` seconds.
+    public static func run(
         _ executableURL: URL,
         arguments: [String],
         input: Data? = nil,

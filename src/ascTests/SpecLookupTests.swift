@@ -6,6 +6,7 @@
 //  Copyright © 2026 Dominic Rodemer. All rights reserved.
 //
 
+import AppleCLIKit
 import Foundation
 import Testing
 @testable import asc
@@ -83,7 +84,7 @@ struct SpecLookupTests {
 
     @Test("show rejects unknown operations")
     func showUnknown() {
-        #expect(throws: ASCError.self) {
+        #expect(throws: CLIError.self) {
             try self.lookup.show(method: "DELETE", path: "/v1/builds/1")
         }
     }

@@ -1,6 +1,6 @@
 //
 //  AgentTests.swift
-//  ascTests
+//  AppleCLIKitTests
 //
 //  Created by Dominic Rodemer on 09/10/2026.
 //  Copyright © 2026 Dominic Rodemer. All rights reserved.
@@ -9,7 +9,7 @@
 import Darwin
 import Foundation
 import Testing
-@testable import asc
+@testable import AppleCLIKit
 
 @Suite("Agent")
 struct AgentTests {
@@ -23,7 +23,7 @@ struct AgentTests {
 
     @Test("Malformed or non-positive TTLs are rejected", arguments: ["", "30", "m", "0m", "-5m", "1.5h", "2d", "1h30m"])
     func rejectsTTL(_ input: String) {
-        #expect(throws: ASCError.self) {
+        #expect(throws: CLIError.self) {
             try Agent.parseTTL(input)
         }
     }
@@ -60,35 +60,69 @@ struct AgentTests {
         #expect(try UnixSocket.readAll(client) == Data(message.reversed()))
     }
 
-    @Test("Connecting without a listener reports that no agent is running, with exit code 6 and a start hint")
-    func connectWithoutAgent() throws {
-        let error = #expect(throws: ASCError.self) {
-            try UnixSocket.connect(to: "/tmp/asc-test-missing-\(getpid()).sock")
+    @Test("Sending without a running agent names the tool's start command, with exit code 6")
+    func sendWithoutAgent() throws {
+        let directory = URL(fileURLWithPath: "/tmp/asc-test-missing-\(getpid())")
+        let error = #expect(throws: CLIError.self) {
+            try Agent(name: "asa", directory: directory).send(AgentRequest(command: .status))
         }
-        guard case .agentNotRunning = try #require(error) else {
-            Issue.record("expected .agentNotRunning, got \(String(describing: error))")
+        guard case .agentNotRunning(tool: "asa") = try #require(error) else {
+            Issue.record("expected .agentNotRunning(tool: asa), got \(String(describing: error))")
             return
         }
         #expect(error?.exitCode == 6)
-        #expect(error?.description.contains("asc agent start") == true)
+        #expect(error?.description.contains("`asa agent start --credentials <op://Vault/Item>`") == true)
     }
 
-    @Test("Responses take exit code and message from ASCError")
-    func responseFromASCError() {
-        let response = Agent.Response(error: ASCError.blocked("no"))
+    @Test("The default socket lives in the tool's own cache folder")
+    func socketPathPerTool() {
+        let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].path
+        #expect(Agent(name: "asc").socketPath == caches + "/asc/agent.sock")
+        #expect(Agent(name: "asa").socketPath == caches + "/asa/agent.sock")
+    }
+
+    @Test("Status lists the credentials reference, the server's fields and the expiry, aligned")
+    func statusFormat() {
+        struct Fields: AgentServer {
+            var statusFields: [(label: String, value: String)] {
+                [("key_id", "K1"), ("ad_account_id", "42")]
+            }
+
+            func perform(_: AgentRequest) async throws -> Data {
+                Data()
+            }
+        }
+        let connection = AgentConnection(
+            agent: Agent(name: "asa"),
+            server: Fields(),
+            reference: "op://Ads/Key",
+            expiresAt: Date(timeIntervalSince1970: 2_000_000_000)
+        )
+        let lines = connection.status.split(separator: "\n")
+        #expect(lines.count == 5)
+        #expect(lines[0] == "agent running (pid \(getpid()))")
+        #expect(lines[1] == "credentials:   op://Ads/Key")
+        #expect(lines[2] == "key_id:        K1")
+        #expect(lines[3] == "ad_account_id: 42")
+        #expect(lines[4].hasPrefix("expires:       2033-05-18T03:33:20Z (in "))
+    }
+
+    @Test("Responses take exit code and message from CLIError")
+    func responseFromCLIError() {
+        let response = AgentResponse(error: CLIError.blocked("no"))
         #expect(response.exitCode == 3)
         #expect(response.message == "BLOCKED: no. This operation is prohibited and was not sent.")
         #expect(response.body == nil)
     }
 
-    @Test("Errors from outside asc map to exit code 1 with their own text")
+    @Test("Errors from outside the tools map to exit code 1 with their own text")
     func responseFromForeignError() {
         struct ForeignError: Error, CustomStringConvertible {
             var description: String {
                 "disk on fire"
             }
         }
-        let response = Agent.Response(error: ForeignError())
+        let response = AgentResponse(error: ForeignError())
         #expect(response.exitCode == 1)
         #expect(response.message == "disk on fire")
     }

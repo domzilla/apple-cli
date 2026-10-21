@@ -6,19 +6,12 @@
 //  Copyright © 2026 Dominic Rodemer. All rights reserved.
 //
 
+import AppleCLIKit
 import Foundation
 
 struct APIClient {
+    static let host = "api.appstoreconnect.apple.com"
     static let maxRateLimitRetries = 5
-
-    /// Ephemeral and without a URL cache: API responses (sales data, user lists) must never be written to disk.
-    static let session: URLSession = {
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.urlCache = nil
-        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-        configuration.httpCookieStorage = nil
-        return URLSession(configuration: configuration)
-    }()
 
     let credentials: Credentials
 
@@ -34,7 +27,7 @@ struct APIClient {
         var attempt = 0
         while true {
             try request.setValue("Bearer \(JWT.token(for: self.credentials))", forHTTPHeaderField: "Authorization")
-            let (data, response) = try await Self.session.data(for: request)
+            let (data, response) = try await URLSession.uncached.data(for: request)
             let http = response as! HTTPURLResponse
 
             if http.statusCode == 429, attempt < Self.maxRateLimitRetries {
@@ -44,7 +37,7 @@ struct APIClient {
                 continue
             }
             guard (200..<300).contains(http.statusCode) else {
-                throw ASCError.api(status: http.statusCode, body: data)
+                throw CLIError.api(status: http.statusCode, body: data)
             }
             return try Self.gunzipIfNeeded(data)
         }
@@ -60,7 +53,7 @@ struct APIClient {
         while let current = next {
             let page = try await self.send(method: .get, path: current, body: nil)
             guard let document = try JSONSerialization.jsonObject(with: page) as? [String: Any] else {
-                throw ASCError.failure("expected a JSON object from \(current.path)")
+                throw CLIError.failure("expected a JSON object from \(current.path)")
             }
             guard let pageData = document["data"] as? [Any] else {
                 // Not a collection; nothing to paginate.
@@ -94,7 +87,7 @@ struct APIClient {
             timeout: 120
         )
         if let message = result.failureMessage {
-            throw ASCError.failure("gunzip failed: \(message)")
+            throw CLIError.failure("gunzip failed: \(message)")
         }
         return result.stdout
     }

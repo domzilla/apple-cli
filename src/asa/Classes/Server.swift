@@ -1,0 +1,53 @@
+//
+//  Server.swift
+//  asa
+//
+//  Created by Dominic Rodemer on 21/10/2026.
+//  Copyright © 2026 Dominic Rodemer. All rights reserved.
+//
+
+import AppleCLIKit
+import Foundation
+
+struct Server: AgentServer {
+    let credentials: Credentials
+    let tokens: AccessTokenProvider
+
+    init(credentials: Credentials) {
+        self.credentials = credentials
+        self.tokens = AccessTokenProvider(credentials: credentials)
+    }
+
+    var statusFields: [(label: String, value: String)] {
+        [
+            ("client_id", self.credentials.clientID.rawValue),
+            ("team_id", self.credentials.teamID.rawValue),
+            ("key_id", self.credentials.keyID.rawValue),
+            ("ad_account_id", self.credentials.adAccountID.rawValue),
+        ]
+    }
+
+    func perform(_ request: AgentRequest) async throws -> Data {
+        guard let rawMethod = request.method else {
+            throw CLIError.usage("missing method")
+        }
+        guard let method = HTTPMethod(argument: rawMethod) else {
+            throw CLIError.usage("unsupported method '\(rawMethod)'")
+        }
+        guard let rawPath = request.path else {
+            throw CLIError.usage("missing path")
+        }
+        let path = try RequestPath(rawPath, host: APIClient.host)
+        if request.isPaginated, method != .post || path.segments.last != "query" {
+            throw CLIError.usage("--paginate only works with POST .../query")
+        }
+        if request.body != nil, method == .get {
+            throw CLIError.usage("GET requests take no --body")
+        }
+
+        let client = APIClient(adAccountID: self.credentials.adAccountID, tokens: self.tokens)
+        return request.isPaginated
+            ? try await client.sendPaginated(path: path, body: request.body)
+            : try await client.send(method: method, path: path, body: request.body)
+    }
+}
