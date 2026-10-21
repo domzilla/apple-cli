@@ -53,6 +53,12 @@ struct Server: AgentServer {
         if request.body != nil, method == .get {
             throw CLIError.usage("GET requests take no --body")
         }
+        if method == .post, path.segments == ["v1", "assets", "upload"] {
+            throw CLIError
+                .usage(
+                    "asset uploads need multipart form data, which asa doesn't support; upload assets in the Apple Ads UI"
+                )
+        }
 
         let client = APIClient(adAccountID: self.credentials.adAccountID, tokens: self.tokens)
         return request.isPaginated

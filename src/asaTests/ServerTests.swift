@@ -23,6 +23,7 @@ struct ServerTests {
             AgentRequest(command: .request, method: "GET", path: "/v1/campaigns/query", isPaginated: true),
             AgentRequest(command: .request, method: "POST", path: "/v1/campaigns", isPaginated: true),
             AgentRequest(command: .request, method: "GET", path: "/v1/me", body: Data("{}".utf8)),
+            AgentRequest(command: .request, method: "POST", path: "/v1/assets/upload", body: Data("{}".utf8)),
         ]
     )
     func rejectsRequest(_ request: AgentRequest) async {
