@@ -15,6 +15,8 @@ import Foundation
 struct Docs: Sendable {
     static let checkInterval: TimeInterval = 24 * 60 * 60
     static let indexFileName = "index.json"
+    static let rootFileName = "root.json"
+    static let pagesDirectoryName = "pages"
     static let maxConcurrentDownloads = 8
 
     static let shared = Docs(
@@ -67,15 +69,21 @@ struct Docs: Sendable {
         {
             throw CLIError.usage("invalid documentation page '\(name)'")
         }
-        let fileName = name.isEmpty ? "root" : name.replacingOccurrences(of: "/", with: "~")
-        let url = self.cacheDirectory.appendingPathComponent(fileName + ".json")
+        // Pages get their own folder so that no page name can overwrite the index or the root page.
+        let url = name.isEmpty
+            ? self.cacheDirectory.appendingPathComponent(Self.rootFileName)
+            : self.cacheDirectory.appendingPathComponent(Self.pagesDirectoryName)
+            .appendingPathComponent(name.replacingOccurrences(of: "/", with: "~") + ".json")
         if self.isFresh(url), let data = try? Data(contentsOf: url), (try? Self.object(data)) != nil {
             return data
         }
         do {
             let data = try await self.download(name)
             _ = try Self.object(data)
-            try self.createCacheDirectory()
+            try FileManager.default.createDirectory(
+                at: url.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
             try data.write(to: url, options: .atomic)
             return data
         } catch {

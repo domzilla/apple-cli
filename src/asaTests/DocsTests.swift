@@ -16,7 +16,10 @@ struct DocsTests {
     /// Port 9 on localhost refuses connections, so a download fails without leaving the machine.
     static func docs() throws -> Docs {
         let directory = URL(fileURLWithPath: "/tmp/asa-test-docs-\(getpid())-\(UInt32.random(in: 0...UInt32.max))")
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: directory.appendingPathComponent(Docs.pagesDirectoryName),
+            withIntermediateDirectories: true
+        )
         return Docs(cacheDirectory: directory, baseURL: URL(string: "http://127.0.0.1:9/docs")!)
     }
 
@@ -74,7 +77,9 @@ struct DocsTests {
         let docs = try Self.docs()
         defer { try? FileManager.default.removeItem(at: docs.cacheDirectory) }
         try Data(#"{"metadata":{"title":"Cached"}}"#.utf8)
-            .write(to: docs.cacheDirectory.appendingPathComponent("campaigncreate~status-data.dictionary.json"))
+            .write(to: docs.cacheDirectory.appendingPathComponent(
+                Docs.pagesDirectoryName + "/campaigncreate~status-data.dictionary.json"
+            ))
         let page = try await docs.page("campaigncreate/status-data.dictionary")
         #expect(DocsPage(page).title == "Cached")
     }
@@ -83,7 +88,7 @@ struct DocsTests {
     func staleCache() async throws {
         let docs = try Self.docs()
         defer { try? FileManager.default.removeItem(at: docs.cacheDirectory) }
-        let url = docs.cacheDirectory.appendingPathComponent("post-campaigns.json")
+        let url = docs.cacheDirectory.appendingPathComponent(Docs.pagesDirectoryName + "/post-campaigns.json")
         try Data(#"{"metadata":{"title":"Stale"}}"#.utf8).write(to: url)
         try FileManager.default.setAttributes(
             [.modificationDate: Date().addingTimeInterval(-2 * Docs.checkInterval)],

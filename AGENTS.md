@@ -64,7 +64,7 @@ None. Use only Apple frameworks (Foundation, CryptoKit) and system tools (`/usr/
 
 ### asa
 - Apple publishes no OpenAPI spec for the Apple Ads Platform API. `asa spec find/show` builds its endpoint index from Apple's DocC documentation JSON (`https://developer.apple.com/tutorials/data/documentation/apple-ads-platform-api`): the topic pages, the endpoint pages they link, and on `show` the data object pages of the body and its nested types.
-- Pages and the index are cached in `~/Library/Caches/asa/docs/` and re-downloaded after 24h. A failed download falls back to the cached copy, so lookups work offline once cached.
+- The index and the root page are cached in `~/Library/Caches/asa/docs/`, the other pages in its `pages/` subfolder; all are re-downloaded after 24h. A failed download falls back to the cached copy, so lookups work offline once cached.
 - The docs only serve lookups; nothing in `asa` is gated on them.
 
 ## Configuration
