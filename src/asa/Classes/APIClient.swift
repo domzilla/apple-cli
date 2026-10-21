@@ -11,9 +11,6 @@ import Foundation
 
 struct APIClient {
     static let host = "api.ads.apple.com"
-    static let maxRateLimitRetries = 5
-    static let maxBackoff: TimeInterval = 16
-    static let maxServerWait: TimeInterval = 300
 
     /// Endpoints scoped to the organization instead of an ad account. Budget order writes fail with 403 when they
     /// carry an ad account, so none of these get the `X-AP-Context` header.
@@ -59,9 +56,7 @@ struct APIClient {
                 await self.tokens.invalidate(token)
                 continue
             }
-            if http.statusCode == 429, attempt < Self.maxRateLimitRetries {
-                attempt += 1
-                try await Task.sleep(for: .seconds(Self.retryDelay(http, attempt: attempt)))
+            if try await RateLimit.waitBeforeRetry(http, attempt: &attempt) {
                 continue
             }
             guard (200..<300).contains(http.statusCode) else {
@@ -88,15 +83,5 @@ struct APIClient {
                 && zip(pattern, path.segments).allSatisfy { $0 == "*" || $0 == $1 }
         }
         return isOrgScoped ? nil : "adAccountId=\(adAccountID.rawValue)"
-    }
-
-    /// `Retry-After`, else `RateLimit-Reset` (bounded at 5 minutes), else exponential backoff capped at 16 seconds.
-    static func retryDelay(_ response: HTTPURLResponse, attempt: Int) -> TimeInterval {
-        let header = response.value(forHTTPHeaderField: "Retry-After")
-            ?? response.value(forHTTPHeaderField: "RateLimit-Reset")
-        if let delay = header.flatMap(TimeInterval.init) {
-            return min(max(delay, 0), self.maxServerWait)
-        }
-        return min(pow(2, Double(attempt)), self.maxBackoff)
     }
 }

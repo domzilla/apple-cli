@@ -11,7 +11,6 @@ import Foundation
 
 struct APIClient {
     static let host = "api.appstoreconnect.apple.com"
-    static let maxRateLimitRetries = 5
 
     let credentials: Credentials
 
@@ -30,10 +29,7 @@ struct APIClient {
             let (data, response) = try await URLSession.uncached.data(for: request)
             let http = response as! HTTPURLResponse
 
-            if http.statusCode == 429, attempt < Self.maxRateLimitRetries {
-                attempt += 1
-                let retryAfter = http.value(forHTTPHeaderField: "Retry-After").flatMap(Double.init)
-                try await Task.sleep(for: .seconds(retryAfter ?? pow(2, Double(attempt))))
+            if try await RateLimit.waitBeforeRetry(http, attempt: &attempt) {
                 continue
             }
             guard (200..<300).contains(http.statusCode) else {

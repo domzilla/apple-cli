@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `asa` scopes every request to the ad account stored in the 1Password item and merges all pages of a query with `--paginate`.
 - `asa spec find` and `asa spec show` look up endpoints, request fields and enum values in Apple's Apple Ads documentation.
 
+### Changed
+- When rate-limited, `asc` now also honors `RateLimit-Reset`, waits at most 5 minutes for a server-named wait and at most 16 seconds between its own retries.
+
 ## [1.2.0] - 2026-10-21
 
 ### Changed
