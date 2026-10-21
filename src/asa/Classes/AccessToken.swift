@@ -10,7 +10,7 @@ import AppleCLIKit
 import Foundation
 
 /// An OAuth access token for the Apple Ads Platform API. It lives one hour and stays in the agent's memory.
-struct AccessToken {
+struct AccessToken: Codable {
     static let tokenURL = URL(string: "https://appleid.apple.com/auth/oauth2/token")!
     static let scope = "searchadsorg"
 

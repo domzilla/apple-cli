@@ -10,12 +10,18 @@ import AppleCLIKit
 import Foundation
 
 struct Server: AgentServer {
+    /// What `agent start` hands the agent: the credentials and the token it fetched to check them.
+    struct Startup: Codable {
+        let credentials: Credentials
+        let accessToken: AccessToken
+    }
+
     let credentials: Credentials
     let tokens: AccessTokenProvider
 
-    init(credentials: Credentials) {
+    init(credentials: Credentials, accessToken: AccessToken? = nil) {
         self.credentials = credentials
-        self.tokens = AccessTokenProvider(credentials: credentials)
+        self.tokens = AccessTokenProvider(credentials: credentials, token: accessToken)
     }
 
     var statusFields: [(label: String, value: String)] {

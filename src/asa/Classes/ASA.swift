@@ -71,10 +71,12 @@ enum ASA {
                 Array(arguments.dropFirst()),
                 load: { reference in
                     let credentials = try Credentials.load(from: reference)
-                    _ = try await AccessToken.fetch(for: credentials)
-                    return credentials
+                    return try await Server.Startup(
+                        credentials: credentials,
+                        accessToken: AccessToken.fetch(for: credentials)
+                    )
                 },
-                makeServer: { Server(credentials: $0) }
+                makeServer: { Server(credentials: $0.credentials, accessToken: $0.accessToken) }
             )
         case "spec":
             try await self.runSpec(Array(arguments.dropFirst()))

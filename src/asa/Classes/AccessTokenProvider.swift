@@ -16,8 +16,9 @@ actor AccessTokenProvider {
     private var cached: AccessToken?
     private var pending: Task<AccessToken, any Error>?
 
-    init(credentials: Credentials) {
+    init(credentials: Credentials, token: AccessToken? = nil) {
         self.credentials = credentials
+        self.cached = token
     }
 
     // MARK: Public
