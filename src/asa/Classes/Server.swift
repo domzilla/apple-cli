@@ -45,7 +45,7 @@ struct Server: AgentServer {
         guard let rawPath = request.path else {
             throw CLIError.usage("missing path")
         }
-        let path = try RequestPath(rawPath, host: APIClient.host)
+        let path = try RequestPath(rawPath)
         if request.isPaginated, method != .post || path.segments.last != "query" {
             throw CLIError.usage("--paginate only works with POST .../query")
         }

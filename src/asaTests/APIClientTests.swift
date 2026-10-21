@@ -16,7 +16,7 @@ struct APIClientTests {
     static let account = Credentials.AdAccountID(rawValue: "42")
 
     static func context(_ method: HTTPMethod, _ path: String) throws -> String? {
-        try APIClient.context(method: method, path: RequestPath(path, host: APIClient.host), adAccountID: self.account)
+        try APIClient.context(method: method, path: RequestPath(path), adAccountID: self.account)
     }
 
     @Test(
