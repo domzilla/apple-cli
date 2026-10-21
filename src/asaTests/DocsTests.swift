@@ -20,6 +20,38 @@ struct DocsTests {
         return Docs(cacheDirectory: directory, baseURL: URL(string: "http://127.0.0.1:9/docs")!)
     }
 
+    /// Serves a root page linking one topic, which lists `post-campaigns` and `get-app-campaign-reports`; every
+    /// page but those two and the root fails with `status`.
+    static func docs(failingWith status: Int) throws -> Docs {
+        var docs = try Self.docs()
+        docs.load = { url in
+            let root: [String: Any] = [
+                "topicSections": [["identifiers": [DocsFixtures.prefix + "Campaigns-Endpoints"]]],
+                "references": [
+                    DocsFixtures.prefix + "Campaigns-Endpoints": DocsFixtures.reference(
+                        "Campaigns-Endpoints",
+                        url: "campaigns-endpoints",
+                        title: "Campaigns Endpoints"
+                    ),
+                ],
+            ]
+            let pages = [
+                "docs": root,
+                "campaigns-endpoints": DocsFixtures.campaignsEndpoints,
+                "post-campaigns": DocsFixtures.postCampaigns,
+            ]
+            let page = pages[url.deletingPathExtension().lastPathComponent]
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: page == nil ? status : 200,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return try (page.map { try JSONSerialization.data(withJSONObject: $0) } ?? Data(), response)
+        }
+        return docs
+    }
+
     @Test(
         "Page names that could leave the documentation are rejected",
         arguments: ["../x", "a/../b", "A", "x y", "x?y"]
@@ -75,5 +107,36 @@ struct DocsTests {
             ofItemAtPath: url.path
         )
         #expect(try await docs.index() == [endpoint])
+    }
+
+    @Test("A page that fails with a server error keeps the stale index and writes none")
+    func partialIndex() async throws {
+        let docs = try Self.docs(failingWith: 500)
+        defer { try? FileManager.default.removeItem(at: docs.cacheDirectory) }
+        let endpoint = DocsEndpoint(method: "GET", path: "/v1/me", title: "Get Me Details", page: "get-me")
+        let url = docs.cacheDirectory.appendingPathComponent(Docs.indexFileName)
+        let stale = try JSONEncoder().encode([endpoint])
+        try stale.write(to: url)
+        try FileManager.default.setAttributes(
+            [.modificationDate: Date().addingTimeInterval(-2 * Docs.checkInterval)],
+            ofItemAtPath: url.path
+        )
+        #expect(try await docs.index() == [endpoint])
+        #expect(try Data(contentsOf: url) == stale)
+    }
+
+    @Test("A missing page is left out of the index")
+    func missingPage() async throws {
+        let docs = try Self.docs(failingWith: 404)
+        defer { try? FileManager.default.removeItem(at: docs.cacheDirectory) }
+        let endpoint = DocsEndpoint(
+            method: "POST",
+            path: "/v1/campaigns",
+            title: "Create a Campaign",
+            page: "post-campaigns"
+        )
+        #expect(try await docs.index() == [endpoint])
+        let url = docs.cacheDirectory.appendingPathComponent(Docs.indexFileName)
+        #expect(try JSONDecoder().decode([DocsEndpoint].self, from: Data(contentsOf: url)) == [endpoint])
     }
 }

@@ -3,11 +3,10 @@ id: '261021-0YNDS46'
 title: asa spec caches a partial docs index as fresh
 author: Dominic Rodemer
 created_at: '2026-10-21T08:43:25.969604Z'
-status: open
+status: closed
 labels:
 - bug
 ---
-
 
 
 `Docs.pages` (`src/asa/Classes/Docs.swift`) drops every page that fails to download, and `buildIndex` succeeds as long as one endpoint loaded. A network blip or 5xx during the index build writes an incomplete `index.json`, and `asa spec find` silently misses endpoints for 24h.

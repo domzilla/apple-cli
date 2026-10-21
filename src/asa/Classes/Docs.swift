@@ -25,6 +25,7 @@ struct Docs: Sendable {
 
     let cacheDirectory: URL
     let baseURL: URL
+    var load: @Sendable (URL) async throws -> (Data, URLResponse) = { try await URLSession.uncached.data(from: $0) }
 
     // MARK: Public
 
@@ -100,7 +101,7 @@ struct Docs: Sendable {
         let url = name.isEmpty
             ? self.baseURL.appendingPathExtension("json")
             : self.baseURL.appendingPathComponent(name).appendingPathExtension("json")
-        let (data, response) = try await URLSession.uncached.data(from: url)
+        let (data, response) = try await self.load(url)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard status == 200 else {
             throw status == 404
@@ -113,8 +114,8 @@ struct Docs: Sendable {
     private func buildIndex() async throws -> [DocsEndpoint] {
         let root = try await self.page("")
         let topics = DocsPage(root).topicPages
-        let endpointPages = await self.pages(topics).flatMap { DocsPage($0.json).endpointPages }
-        let endpoints = await self.pages(Array(Set(endpointPages)).sorted()).compactMap { page in
+        let endpointPages = try await self.pages(topics).flatMap { DocsPage($0.json).endpointPages }
+        let endpoints = try await self.pages(Array(Set(endpointPages)).sorted()).compactMap { page in
             DocsPage(page.json).endpoint(page: page.name)
         }
         guard !endpoints.isEmpty else {
@@ -123,28 +124,37 @@ struct Docs: Sendable {
         return endpoints.sorted { ($0.path, $0.method) < ($1.path, $1.method) }
     }
 
-    /// Downloads pages in parallel, a few at a time. Pages that fail are left out, so one broken link doesn't break
-    /// the index; if all fail, `buildIndex` finds no endpoints and the cached index is used.
-    private func pages(_ names: [String]) async -> [(name: String, json: [String: Any])] {
-        let pages = await withTaskGroup(of: (String, Data)?.self) { group in
+    /// Downloads pages in parallel, a few at a time. Missing pages are left out, so one broken link doesn't break the
+    /// index; any other failure throws, so `index()` keeps the cached index instead of caching a partial one.
+    private func pages(_ names: [String]) async throws -> [(name: String, json: [String: Any])] {
+        let pages = try await withThrowingTaskGroup(of: (String, Data)?.self) { group in
             var results = [(String, Data)]()
             var remaining = names.makeIterator()
             for _ in 0..<Self.maxConcurrentDownloads {
                 if let name = remaining.next() {
-                    group.addTask { try? await (name, self.pageData(name)) }
+                    group.addTask { try await self.existingPageData(name) }
                 }
             }
-            while let data = await group.next() {
+            while let data = try await group.next() {
                 if let data {
                     results.append(data)
                 }
                 if let name = remaining.next() {
-                    group.addTask { try? await (name, self.pageData(name)) }
+                    group.addTask { try await self.existingPageData(name) }
                 }
             }
             return results
         }
         return pages.compactMap { name, data in (try? Self.object(data)).map { (name, $0) } }
+    }
+
+    /// `nil` for a page that doesn't exist (404) or whose name is invalid.
+    private func existingPageData(_ name: String) async throws -> (String, Data)? {
+        do {
+            return try await (name, self.pageData(name))
+        } catch CLIError.usage {
+            return nil
+        }
     }
 
     private static func object(_ data: Data) throws -> [String: Any] {
