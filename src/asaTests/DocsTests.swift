@@ -6,16 +6,17 @@
 //  Copyright © 2026 Dominic Rodemer. All rights reserved.
 //
 
+import AppleCLIKit
 import Foundation
 import Testing
-@testable import AppleCLIKit
 @testable import asa
 
 @Suite("Docs")
 struct DocsTests {
     /// Port 9 on localhost refuses connections, so a download fails without leaving the machine.
     static func docs() throws -> Docs {
-        let directory = URL(fileURLWithPath: "/tmp/asa-test-docs-\(getpid())-\(UInt32.random(in: 0...UInt32.max))")
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("asa-test-docs-\(UUID().uuidString)")
         try FileManager.default.createDirectory(
             at: directory.appendingPathComponent(Docs.pagesDirectoryName),
             withIntermediateDirectories: true

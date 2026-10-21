@@ -6,9 +6,9 @@
 //  Copyright © 2026 Dominic Rodemer. All rights reserved.
 //
 
+import AppleCLIKit
 import Foundation
 import Testing
-@testable import AppleCLIKit
 @testable import asa
 
 /// Every case here fails before a token is requested, so nothing reaches the network.

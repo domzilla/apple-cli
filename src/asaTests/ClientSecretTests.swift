@@ -6,10 +6,10 @@
 //  Copyright © 2026 Dominic Rodemer. All rights reserved.
 //
 
+import AppleCLIKit
 import CryptoKit
 import Foundation
 import Testing
-@testable import AppleCLIKit
 @testable import asa
 
 @Suite("ClientSecret")
