@@ -3,11 +3,10 @@ id: '261021-0ZG59J5'
 title: 'apple-ads skill: align with the app-store-connect skill'
 author: Dominic Rodemer
 created_at: '2026-10-21T08:57:41.214264Z'
-status: open
+status: closed
 labels:
 - task
 ---
-
 
 
 In `/Users/dom/Agents/Skills/apple-ads/SKILL.md` (Agents repo):
