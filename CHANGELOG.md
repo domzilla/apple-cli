@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-21
+
+### Changed
+- The project is now called apple-cli; install it with `brew install domzilla/tap/apple-cli`. The `asc` command is unchanged.
+
 ## [1.1.0] - 2026-10-09
 
 ### Fixed

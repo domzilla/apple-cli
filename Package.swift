@@ -8,7 +8,7 @@ let infoPlist = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
     .appendingPathComponent("src/asc/Resources/Info.plist").path
 
 let package = Package(
-    name: "asc",
+    name: "apple-cli",
     platforms: [.macOS(.v14)],
     targets: [
         .executableTarget(

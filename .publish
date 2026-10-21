@@ -11,5 +11,5 @@ publishers:
 post_publish_commands:
 - echo "Release {{version}} complete"
 homebrew-tap:
-  formula: asc
+  formula: apple-cli
   tap_repo: domzilla/homebrew-tap

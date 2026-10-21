@@ -44,7 +44,7 @@ jobs:
       - name: Create bottle structure
         run: |
           VERSION=${{ steps.version.outputs.version }}
-          BOTTLE_DIR="asc/$VERSION"
+          BOTTLE_DIR="apple-cli/$VERSION"
 
           # Create Homebrew-style directory structure
           mkdir -p "$BOTTLE_DIR/bin"
@@ -55,18 +55,18 @@ jobs:
           VERSION=${{ steps.version.outputs.version }}
           BOTTLE_TAG=${{ matrix.bottle_tag }}
 
-          tar -czf "asc-${VERSION}.${BOTTLE_TAG}.bottle.tar.gz" asc
+          tar -czf "apple-cli-${VERSION}.${BOTTLE_TAG}.bottle.tar.gz" apple-cli
 
           # Calculate SHA256
-          shasum -a 256 "asc-${VERSION}.${BOTTLE_TAG}.bottle.tar.gz" > "asc-${VERSION}.${BOTTLE_TAG}.bottle.tar.gz.sha256"
+          shasum -a 256 "apple-cli-${VERSION}.${BOTTLE_TAG}.bottle.tar.gz" > "apple-cli-${VERSION}.${BOTTLE_TAG}.bottle.tar.gz.sha256"
 
       - name: Upload bottle artifact
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: bottle-${{ matrix.bottle_tag }}
           path: |
-            asc-*.bottle.tar.gz
-            asc-*.bottle.tar.gz.sha256
+            apple-cli-*.bottle.tar.gz
+            apple-cli-*.bottle.tar.gz.sha256
 
   release:
     name: Create Release
@@ -97,8 +97,8 @@ jobs:
         id: bottles
         run: |
           cd bottles
-          echo "arm64_sha=$(cat asc-${{ steps.version.outputs.version }}.arm64_tahoe.bottle.tar.gz.sha256 | cut -d' ' -f1)" >> $GITHUB_OUTPUT
-          echo "x86_64_sha=$(cat asc-${{ steps.version.outputs.version }}.tahoe.bottle.tar.gz.sha256 | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+          echo "arm64_sha=$(cat apple-cli-${{ steps.version.outputs.version }}.arm64_tahoe.bottle.tar.gz.sha256 | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+          echo "x86_64_sha=$(cat apple-cli-${{ steps.version.outputs.version }}.tahoe.bottle.tar.gz.sha256 | cut -d' ' -f1)" >> $GITHUB_OUTPUT
 
       - name: Output bottle info
         run: |
@@ -108,7 +108,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo '```ruby' >> $GITHUB_STEP_SUMMARY
           echo "bottle do" >> $GITHUB_STEP_SUMMARY
-          echo '  root_url "https://github.com/domzilla/asc/releases/download/${{ github.ref_name }}"' >> $GITHUB_STEP_SUMMARY
+          echo '  root_url "https://github.com/domzilla/apple-cli/releases/download/${{ github.ref_name }}"' >> $GITHUB_STEP_SUMMARY
           echo '  sha256 cellar: :any_skip_relocation, arm64_tahoe: "${{ steps.bottles.outputs.arm64_sha }}"' >> $GITHUB_STEP_SUMMARY
           echo '  sha256 cellar: :any_skip_relocation, tahoe: "${{ steps.bottles.outputs.x86_64_sha }}"' >> $GITHUB_STEP_SUMMARY
           echo "end" >> $GITHUB_STEP_SUMMARY
@@ -135,15 +135,15 @@ jobs:
       - name: Calculate source SHA256
         id: source
         run: |
-          curl -sL "https://github.com/domzilla/asc/archive/refs/tags/${{ github.ref_name }}.tar.gz" -o source.tar.gz
+          curl -sL "https://github.com/domzilla/apple-cli/archive/refs/tags/${{ github.ref_name }}.tar.gz" -o source.tar.gz
           echo "sha256=$(shasum -a 256 source.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
 
       - name: Get bottle SHA256s
         id: bottles
         run: |
           cd bottles
-          echo "arm64_sha=$(cat asc-${{ steps.version.outputs.version }}.arm64_tahoe.bottle.tar.gz.sha256 | cut -d' ' -f1)" >> $GITHUB_OUTPUT
-          echo "x86_64_sha=$(cat asc-${{ steps.version.outputs.version }}.tahoe.bottle.tar.gz.sha256 | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+          echo "arm64_sha=$(cat apple-cli-${{ steps.version.outputs.version }}.arm64_tahoe.bottle.tar.gz.sha256 | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+          echo "x86_64_sha=$(cat apple-cli-${{ steps.version.outputs.version }}.tahoe.bottle.tar.gz.sha256 | cut -d' ' -f1)" >> $GITHUB_OUTPUT
 
       - name: Checkout homebrew-tap
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -160,17 +160,17 @@ jobs:
           ARM64_SHA=${{ steps.bottles.outputs.arm64_sha }}
           X86_64_SHA=${{ steps.bottles.outputs.x86_64_sha }}
 
-          cat > homebrew-tap/Formula/asc.rb << 'FORMULA'
-          class Asc < Formula
+          cat > homebrew-tap/Formula/apple-cli.rb << 'FORMULA'
+          class AppleCli < Formula
             desc "App Store Connect API client for AI agents, with a built-in blocklist"
-            homepage "https://github.com/domzilla/asc"
-            url "https://github.com/domzilla/asc/archive/refs/tags/TAG_PLACEHOLDER.tar.gz"
+            homepage "https://github.com/domzilla/apple-cli"
+            url "https://github.com/domzilla/apple-cli/archive/refs/tags/TAG_PLACEHOLDER.tar.gz"
             sha256 "SOURCE_SHA_PLACEHOLDER"
             license "MIT"
-            head "https://github.com/domzilla/asc.git", branch: "master"
+            head "https://github.com/domzilla/apple-cli.git", branch: "master"
 
             bottle do
-              root_url "https://github.com/domzilla/asc/releases/download/TAG_PLACEHOLDER"
+              root_url "https://github.com/domzilla/apple-cli/releases/download/TAG_PLACEHOLDER"
               sha256 cellar: :any_skip_relocation, arm64_tahoe: "ARM64_SHA_PLACEHOLDER"
               sha256 cellar: :any_skip_relocation, tahoe: "X86_64_SHA_PLACEHOLDER"
             end
@@ -190,16 +190,16 @@ jobs:
           FORMULA
 
           # Replace placeholders
-          sed -i "s|TAG_PLACEHOLDER|${TAG}|g" homebrew-tap/Formula/asc.rb
-          sed -i "s|SOURCE_SHA_PLACEHOLDER|${SOURCE_SHA}|g" homebrew-tap/Formula/asc.rb
-          sed -i "s|ARM64_SHA_PLACEHOLDER|${ARM64_SHA}|g" homebrew-tap/Formula/asc.rb
-          sed -i "s|X86_64_SHA_PLACEHOLDER|${X86_64_SHA}|g" homebrew-tap/Formula/asc.rb
+          sed -i "s|TAG_PLACEHOLDER|${TAG}|g" homebrew-tap/Formula/apple-cli.rb
+          sed -i "s|SOURCE_SHA_PLACEHOLDER|${SOURCE_SHA}|g" homebrew-tap/Formula/apple-cli.rb
+          sed -i "s|ARM64_SHA_PLACEHOLDER|${ARM64_SHA}|g" homebrew-tap/Formula/apple-cli.rb
+          sed -i "s|X86_64_SHA_PLACEHOLDER|${X86_64_SHA}|g" homebrew-tap/Formula/apple-cli.rb
 
       - name: Commit and push formula
         run: |
           cd homebrew-tap
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/asc.rb
-          git commit -m "Update asc to ${{ steps.version.outputs.version }}"
+          git add Formula/apple-cli.rb
+          git commit -m "Update apple-cli to ${{ steps.version.outputs.version }}"
           git push

@@ -1,11 +1,11 @@
-# asc
+# apple-cli
 
 A minimal App Store Connect API client for AI agents. It signs requests with a key held only in memory, and refuses prohibited operations – removing apps from sale, price changes, releases, submissions, deleting users and more – before anything is sent.
 
 ## Install
 
 ```bash
-brew install domzilla/tap/asc
+brew install domzilla/tap/apple-cli
 ```
 
 Requires the [1Password CLI](https://developer.1password.com/docs/cli/) with the desktop app integration enabled.
