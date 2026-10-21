@@ -35,6 +35,7 @@ struct Server: AgentServer {
         ]
     }
 
+    /// Checks the method, path, `--paginate` and `--body` before a token is used or anything is sent.
     func perform(_ request: AgentRequest) async throws -> Data {
         guard let rawMethod = request.method else {
             throw CLIError.usage("missing method")

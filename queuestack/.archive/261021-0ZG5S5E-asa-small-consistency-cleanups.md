@@ -3,11 +3,10 @@ id: '261021-0ZG5S5E'
 title: 'asa: small consistency cleanups'
 author: Dominic Rodemer
 created_at: '2026-10-21T08:57:41.159740Z'
-status: open
+status: closed
 labels:
 - refactoring
 ---
-
 
 
 - `src/asa/Classes/HTTPMethod.swift`: `CaseIterable` is unused; remove it unless a test needs it (see the HTTPMethodTests item).

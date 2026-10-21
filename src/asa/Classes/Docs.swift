@@ -152,7 +152,9 @@ struct Docs: Sendable {
         guard !endpoints.isEmpty else {
             throw CLIError.failure("the documentation lists no endpoints")
         }
-        return endpoints.sorted { ($0.path, $0.method) < ($1.path, $1.method) }
+        let methodOrder = HTTPMethod.allCases.map(\.rawValue)
+        let rank = { (method: String) in methodOrder.firstIndex(of: method) ?? methodOrder.count }
+        return endpoints.sorted { ($0.path, rank($0.method), $0.method) < ($1.path, rank($1.method), $1.method) }
     }
 
     /// Downloads pages in parallel, a few at a time. Missing pages are left out, so one broken link doesn't break the
