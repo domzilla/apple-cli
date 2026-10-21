@@ -3,7 +3,7 @@ id: '261021-0ZG5RXH'
 title: Add asa-guard hook blocking direct Apple Ads API calls
 author: Dominic Rodemer
 created_at: '2026-10-21T08:57:41.232449Z'
-status: open
+status: closed
 labels:
 - feature
 ---
