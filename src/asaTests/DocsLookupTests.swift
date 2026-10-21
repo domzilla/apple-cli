@@ -13,6 +13,10 @@ import Testing
 
 @Suite("DocsLookup")
 struct DocsLookupTests {
+    struct PageRequested: Error, Equatable {
+        let name: String
+    }
+
     static let endpoints = [
         DocsEndpoint(method: "POST", path: "/v1/campaigns", title: "Create a Campaign", page: "post-campaigns"),
         DocsEndpoint(
@@ -49,9 +53,9 @@ struct DocsLookupTests {
         let parameters = try #require(get["parameters"] as? [[String: Any]])
         #expect(parameters.map { $0["name"] as? String } == ["id"])
 
-        await #expect(throws: (any Error).self) {
-            // Resolves to post-campaigns-query, which the fixtures don't have: proves /query wasn't read as {id}.
-            try await Self.lookup.show(method: "POST", path: "/v1/campaigns/query")
+        let recording = DocsLookup(endpoints: Self.endpoints) { throw PageRequested(name: $0) }
+        await #expect(throws: PageRequested(name: "post-campaigns-query")) {
+            try await recording.show(method: "POST", path: "/v1/campaigns/query")
         }
     }
 

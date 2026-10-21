@@ -86,7 +86,8 @@ struct DocsTests {
 
     @Test("A stale cached page is used when the download fails, and no cache is an error")
     func staleCache() async throws {
-        let docs = try Self.docs()
+        var docs = try Self.docs()
+        docs.load = { _ in throw URLError(.cannotConnectToHost) }
         defer { try? FileManager.default.removeItem(at: docs.cacheDirectory) }
         let url = docs.cacheDirectory.appendingPathComponent(Docs.pagesDirectoryName + "/post-campaigns.json")
         try Data(#"{"metadata":{"title":"Stale"}}"#.utf8).write(to: url)
@@ -95,7 +96,7 @@ struct DocsTests {
             ofItemAtPath: url.path
         )
         #expect(try await DocsPage(docs.page("post-campaigns")).title == "Stale")
-        await #expect(throws: (any Error).self) {
+        await #expect(throws: URLError(.cannotConnectToHost)) {
             try await docs.page("get-campaigns-_id_")
         }
     }
