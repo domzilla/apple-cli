@@ -14,9 +14,9 @@ public enum CLIError: Error, CustomStringConvertible {
     case usage(String)
     /// A path that isn't a strict API path.
     case invalidPath(String)
-    /// A request the blocklist refuses.
+    /// A request the blocklist refuses. Only asc has a blocklist.
     case blocked(String)
-    /// Writes are disabled until a changed API spec is reviewed.
+    /// Writes are disabled until a changed API spec is reviewed. Only asc gates writes on the spec.
     case specGate(String)
     /// The key couldn't be read from 1Password or is invalid.
     case credentials(String)

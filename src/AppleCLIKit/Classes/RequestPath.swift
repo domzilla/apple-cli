@@ -8,7 +8,7 @@
 
 import Foundation
 
-/// A validated API path plus query. The path is kept strict (no percent-encoding, no dot segments) so the
+/// A validated API path plus query. The path is kept strict (no percent-encoding, no dot segments) so asc's
 /// blocklist sees exactly the resource the server will act on, and requests can only go to the tool's API host.
 public struct RequestPath: Equatable, Sendable {
     /// The API host every request goes to.
