@@ -87,21 +87,26 @@ enum ASA {
     }
 
     private static func runSpec(_ arguments: [String]) async throws {
-        let lookup = try await DocsLookup(endpoints: Docs.shared.index(), loadPage: Docs.shared.page)
         switch arguments.first {
         case "find":
             let terms = Array(arguments.dropFirst())
             guard !terms.isEmpty else {
                 throw CLIError.usage("usage: asa spec find <term>...")
             }
-            let lines = lookup.find(terms)
+            let lines = try await self.docsLookup().find(terms)
             CLI.write(lines.isEmpty ? "no matches\n" : lines.joined(separator: "\n") + "\n")
         case "show" where arguments.count == 3:
-            try await CLI.write(lookup.show(method: arguments[1], path: arguments[2]) + "\n")
+            try await CLI.write(self.docsLookup().show(method: arguments[1], path: arguments[2]) + "\n")
         case "show" where arguments.count == 2:
+            // A data object is looked up by page name, so it needs no endpoint index.
+            let lookup = DocsLookup(endpoints: [], loadPage: Docs.shared.page)
             try await CLI.write(lookup.show(object: arguments[1]) + "\n")
         default:
             throw CLIError.usage("usage: asa spec find <term>... | show <METHOD> <path> | show <Object>")
         }
+    }
+
+    private static func docsLookup() async throws -> DocsLookup {
+        try await DocsLookup(endpoints: Docs.shared.index(), loadPage: Docs.shared.page)
     }
 }
