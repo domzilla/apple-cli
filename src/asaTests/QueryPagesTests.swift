@@ -137,8 +137,13 @@ struct QueryPagesTests {
 
     @Test("A body that isn't a JSON object is a usage error", arguments: ["[]", "\"x\"", "{"])
     func rejectsBody(_ body: String) {
-        #expect(throws: (any Error).self) {
+        #expect {
             try QueryPages(path: Self.entityPath, body: Data(body.utf8))
+        } throws: { error in
+            guard let error = error as? CLIError, case .usage = error else {
+                return false
+            }
+            return true
         }
     }
 

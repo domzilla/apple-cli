@@ -21,7 +21,11 @@ struct QueryPages {
     private let startOffset: Int
 
     init(path: String, body: Data?) throws {
-        let object = try body.flatMap { $0.isEmpty ? nil : try JSONSerialization.jsonObject(with: $0) } ?? [:]
+        let object: Any? = if let body, !body.isEmpty {
+            try? JSONSerialization.jsonObject(with: body)
+        } else {
+            [String: Any]()
+        }
         guard let body = object as? [String: Any] else {
             throw CLIError.usage("--paginate needs a JSON object body")
         }
