@@ -72,10 +72,12 @@ struct APIClientTests {
         #expect(try APIClient.retryDelay(Self.response([:]), attempt: 3) == 8)
     }
 
-    @Test("The wait is capped at 16 seconds and never negative")
+    @Test("Backoff is capped at 16 seconds, a server wait at 5 minutes, and neither is negative")
     func retryDelayBounds() throws {
         #expect(try APIClient.retryDelay(Self.response([:]), attempt: 5) == 16)
-        #expect(try APIClient.retryDelay(Self.response(["Retry-After": "120"]), attempt: 1) == 16)
+        #expect(try APIClient.retryDelay(Self.response(["Retry-After": "120"]), attempt: 1) == 120)
+        #expect(try APIClient.retryDelay(Self.response(["RateLimit-Reset": "60"]), attempt: 1) == 60)
+        #expect(try APIClient.retryDelay(Self.response(["Retry-After": "900"]), attempt: 1) == 300)
         #expect(try APIClient.retryDelay(Self.response(["Retry-After": "-1"]), attempt: 1) == 0)
     }
 }
