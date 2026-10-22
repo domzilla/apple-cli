@@ -58,6 +58,7 @@ struct DocsLookupTests {
         #expect(get["operation"] as? String == "GET /v1/campaigns/{id}")
         let parameters = try #require(get["parameters"] as? [[String: Any]])
         #expect(parameters.map { $0["name"] as? String } == ["id"])
+        #expect(get["examples"] == nil)
 
         let recording = DocsLookup(endpoints: Self.endpoints) { throw PageRequested(name: $0) }
         await #expect(throws: PageRequested(name: "post-campaigns-query")) {
@@ -73,6 +74,10 @@ struct DocsLookupTests {
         #expect(result["summary"] as? String == "Create a new advertising campaign.")
         #expect(result["parameters"] == nil)
         #expect(result["responses"] as? [String: String] == ["200": "CampaignResponse", "400": "ErrorResponse"])
+        #expect(result["examples"] as? [String] == [
+            "POST /v1/campaigns\n\n{\n \"name\": \"Search\"\n}",
+            "{\"name\": \"Today\"}",
+        ])
 
         let body = try #require(result["requestBody"] as? [String: Any])
         #expect(body["type"] as? String == "CampaignCreate")

@@ -51,6 +51,15 @@ struct DocsPageTests {
         #expect(page.responses == ["200": "CampaignResponse", "400": "ErrorResponse"])
     }
 
+    @Test("Request examples are the code listings under Request headings, in page order, without responses")
+    func requestExamples() {
+        #expect(DocsPage(DocsFixtures.postCampaigns).requestExamples == [
+            "POST /v1/campaigns\n\n{\n \"name\": \"Search\"\n}",
+            "{\"name\": \"Today\"}",
+        ])
+        #expect(DocsPage(DocsFixtures.getCampaign).requestExamples.isEmpty)
+    }
+
     @Test("Descriptions are plain text with code in backticks and references as their titles")
     func descriptionText() throws {
         let name = try #require(DocsPage(DocsFixtures.campaignCreate).properties.first)

@@ -99,6 +99,42 @@ enum DocsFixtures {
                         ["status": 400, "reason": "Bad Request", "type": [["text": "ErrorResponse"]]],
                     ],
                 ],
+                [
+                    "kind": "content",
+                    "content": [
+                        ["type": "heading", "level": 2, "text": "Discussion"],
+                        ["type": "codeListing", "syntax": "json", "code": ["{\"budgetAmount\": {}}"]],
+                        ["type": "heading", "level": 2, "text": "Payload Examples"],
+                        [
+                            "type": "tabNavigator",
+                            "tabs": [
+                                [
+                                    "title": "App Store Search",
+                                    "content": [
+                                        ["type": "heading", "level": 3, "text": "Request"],
+                                        ["type": "paragraph", "inlineContent": [["type": "text", "text": "Search."]]],
+                                        [
+                                            "type": "codeListing",
+                                            "syntax": "json",
+                                            "code": ["POST /v1/campaigns", "", "{", " \"name\": \"Search\"", "}"],
+                                        ],
+                                        ["type": "heading", "level": 3, "text": "Response"],
+                                        ["type": "codeListing", "syntax": "json", "code": ["{\"result\": {}}"]],
+                                    ],
+                                ],
+                                [
+                                    "title": "Today Tab",
+                                    "content": [
+                                        ["type": "heading", "level": 3, "text": "Request"],
+                                        ["type": "codeListing", "syntax": "json", "code": ["{\"name\": \"Today\"}"]],
+                                        ["type": "heading", "level": 3, "text": "Response"],
+                                        ["type": "codeListing", "syntax": "json", "code": ["{\"result\": {}}"]],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
             ],
             "references": [
                 prefix + "CampaignCreate": reference("CampaignCreate", url: "campaigncreate", title: "CampaignCreate"),

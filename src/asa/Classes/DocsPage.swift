@@ -96,6 +96,12 @@ struct DocsPage {
         return responses
     }
 
+    /// Apple's example requests: the code listings under "Request" headings, as in an endpoint's "Payload Examples".
+    var requestExamples: [String] {
+        var heading: String?
+        return self.codeListings(self.sections, heading: &heading)
+    }
+
     /// The fields of an object page: name to type, `required`, description, allowed values, and the page of the
     /// field's type for resolving it.
     var properties: [(name: String, field: [String: Any], typePage: String?)] {
@@ -162,6 +168,25 @@ struct DocsPage {
             field["values"] = values
         }
         return field
+    }
+
+    private func codeListings(_ node: Any?, heading: inout String?) -> [String] {
+        if let items = node as? [Any] {
+            return items.flatMap { self.codeListings($0, heading: &heading) }
+        }
+        guard let item = node as? [String: Any] else {
+            return []
+        }
+        switch item["type"] as? String {
+        case "heading":
+            heading = item["text"] as? String
+            return []
+        case "codeListing":
+            let code = (item["code"] as? [String] ?? []).joined(separator: "\n")
+            return heading == "Request" && !code.isEmpty ? [code] : []
+        default:
+            return item.keys.sorted().flatMap { self.codeListings(item[$0], heading: &heading) }
+        }
     }
 
     private func typeName(_ tokens: Any?) -> String {

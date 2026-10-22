@@ -27,8 +27,8 @@ struct DocsLookup {
         .map { "\($0.method) \($0.path)  \($0.title)" }
     }
 
-    /// Parameters, the request body with its fields resolved, and the response types of one endpoint. `path` may be
-    /// the template (`/v1/campaigns/{id}`) or a concrete path (`/v1/campaigns/123`).
+    /// Parameters, the request body with its fields resolved, the response types and Apple's example requests of one
+    /// endpoint. `path` may be the template (`/v1/campaigns/{id}`) or a concrete path (`/v1/campaigns/123`).
     func show(method argument: String, path: String) async throws -> String {
         guard let endpoint = self.endpoint(method: argument.uppercased(), path: path) else {
             throw CLIError.usage("no \(argument.uppercased()) \(path) in the documentation; try `asa spec find <term>`")
@@ -60,6 +60,9 @@ struct DocsLookup {
         }
         if !page.responses.isEmpty {
             result["responses"] = page.responses
+        }
+        if !page.requestExamples.isEmpty {
+            result["examples"] = page.requestExamples
         }
         return try Self.json(result)
     }
