@@ -154,4 +154,29 @@ struct QueryPagesTests {
             try pages.add(Data(#"{"result":{"id":1},"pagination":{"totalCount":1}}"#.utf8))
         }
     }
+
+    @Test("An empty report without result.rows merges to an empty rows array")
+    func mergesEmptyReport() throws {
+        var pages = try QueryPages(path: Self.reportPath, body: nil)
+        _ = try pages.nextBody()
+        try pages.add(Data(#"{"result":{},"pagination":{"offset":0,"pageSize":0,"totalCount":0}}"#.utf8))
+        #expect(try pages.nextBody() == nil)
+
+        let merged = try Fixtures.json(pages.merged())
+        let result = try #require(merged["result"] as? [String: Any])
+        #expect(result.count == 1)
+        #expect(try #require(result["rows"] as? [Any]).isEmpty)
+        let pagination = try #require(merged["pagination"] as? [String: Any])
+        #expect(pagination["offset"] as? Int == 0)
+        #expect(pagination["pageSize"] as? Int == 0)
+        #expect(pagination["totalCount"] as? Int == 0)
+    }
+
+    @Test("A report without result.rows is still an error when totalCount promises rows")
+    func rejectsReportWithoutRows() throws {
+        var pages = try QueryPages(path: Self.reportPath, body: nil)
+        #expect(throws: CLIError.self) {
+            try pages.add(Data(#"{"result":{},"pagination":{"offset":0,"pageSize":0,"totalCount":3}}"#.utf8))
+        }
+    }
 }

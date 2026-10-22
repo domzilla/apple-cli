@@ -57,11 +57,13 @@ struct QueryPages {
         guard let document = try JSONSerialization.jsonObject(with: page) as? [String: Any] else {
             throw CLIError.failure("expected a JSON object from the query")
         }
-        guard let pageRows = Self.rows(in: document) else {
-            throw CLIError.failure("the query response has no result rows to paginate")
-        }
         guard let totalCount = (document["pagination"] as? [String: Any])?["totalCount"] as? Int else {
             throw CLIError.failure("--paginate needs pagination.totalCount in the response")
+        }
+        // An empty report comes back as `"result":{}` without `rows`.
+        let isEmptyReport = totalCount == 0 && document["result"] is [String: Any]
+        guard let pageRows = Self.rows(in: document) ?? (isEmptyReport ? [] : nil) else {
+            throw CLIError.failure("the query response has no result rows to paginate")
         }
         if self.firstPage == nil {
             self.firstPage = document
