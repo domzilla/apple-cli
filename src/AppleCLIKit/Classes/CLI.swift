@@ -55,7 +55,12 @@ public enum CLI {
             }
             try await self.write(agent.start(reference: reference, ttl: ttl, load: load) + "\n")
         case "status":
-            try self.write((agent.send(AgentRequest(command: .status)).message ?? "") + "\n")
+            let response = try agent.send(AgentRequest(command: .status))
+            guard response.exitCode == 0 else {
+                self.writeError("\(agent.name): \(response.message ?? "failed")")
+                exit(response.exitCode)
+            }
+            self.write((response.message ?? "") + "\n")
         case "stop":
             // Stopping an agent that already expired is not an error.
             let response = try? agent.send(AgentRequest(command: .stop))

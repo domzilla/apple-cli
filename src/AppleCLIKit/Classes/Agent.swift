@@ -52,7 +52,7 @@ public struct Agent: Sendable {
     ) async throws
         -> String
     {
-        if let status = try? self.send(AgentRequest(command: .status)) {
+        if let status = try? self.send(AgentRequest(command: .status)), status.exitCode == 0 {
             throw CLIError.agent("already running; stop it first\n\(status.message ?? "")")
         }
 

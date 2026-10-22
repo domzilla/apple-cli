@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - When rate-limited, `asc` now also honors `RateLimit-Reset`, waits at most 5 minutes for a server-named wait and at most 16 seconds between its own retries.
 
+### Fixed
+- An agent whose TTL has ended now refuses requests and status with exit code 6 right away, instead of answering for a few more seconds.
+
 ## [1.2.0] - 2026-10-21
 
 ### Changed

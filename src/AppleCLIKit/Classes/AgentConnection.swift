@@ -24,19 +24,7 @@ struct AgentConnection: Sendable {
         var isStopping = false
         do {
             let request = try JSONDecoder().decode(AgentRequest.self, from: UnixSocket.readAll(fd))
-            switch request.command {
-            case .status:
-                response = AgentResponse(exitCode: 0, message: self.status)
-            case .stop:
-                isStopping = true
-                response = AgentResponse(exitCode: 0, message: "agent stopped")
-            case .request:
-                do {
-                    response = try await AgentResponse(exitCode: 0, body: self.server.perform(request))
-                } catch {
-                    response = AgentResponse(error: error)
-                }
-            }
+            (response, isStopping) = await self.respond(to: request)
         } catch {
             response = AgentResponse(error: CLIError.agent("invalid request: \(error)"))
         }
@@ -44,6 +32,26 @@ struct AgentConnection: Sendable {
         try? UnixSocket.writeAll(fd, JSONEncoder().encode(response))
         if isStopping {
             self.agent.shutDown()
+        }
+    }
+
+    /// Past `expiresAt` the agent refuses everything but `stop` and shuts down, because the sleep in `Agent.serve`
+    /// can fire seconds late.
+    func respond(to request: AgentRequest) async -> (response: AgentResponse, isStopping: Bool) {
+        if Date() >= self.expiresAt, request.command != .stop {
+            return (AgentResponse(error: CLIError.agentNotRunning(tool: self.agent.name)), true)
+        }
+        switch request.command {
+        case .status:
+            return (AgentResponse(exitCode: 0, message: self.status), false)
+        case .stop:
+            return (AgentResponse(exitCode: 0, message: "agent stopped"), true)
+        case .request:
+            do {
+                return try await (AgentResponse(exitCode: 0, body: self.server.perform(request)), false)
+            } catch {
+                return (AgentResponse(error: error), false)
+            }
         }
     }
 

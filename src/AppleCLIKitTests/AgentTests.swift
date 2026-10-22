@@ -107,6 +107,59 @@ struct AgentTests {
         #expect(lines[4].hasPrefix("expires:       2033-05-18T03:33:20Z (in "))
     }
 
+    @Test(
+        "An expired agent refuses requests and status with exit code 6 and shuts down",
+        arguments: [AgentRequest.Command.request, .status]
+    )
+    func expiredAgentRefuses(_ command: AgentRequest.Command) async {
+        struct Unreachable: AgentServer {
+            var statusFields: [(label: String, value: String)] {
+                []
+            }
+
+            func perform(_: AgentRequest) async throws -> Data {
+                Issue.record("an expired agent performed a request")
+                return Data()
+            }
+        }
+        let connection = AgentConnection(
+            agent: Agent(name: "asc"),
+            server: Unreachable(),
+            reference: "op://Vault/Item",
+            expiresAt: Date().addingTimeInterval(-1)
+        )
+        let (response, isStopping) = await connection.respond(
+            to: AgentRequest(command: command, method: "GET", path: "/v1/apps")
+        )
+        #expect(response.exitCode == 6)
+        #expect(response.message?.contains("no agent running") == true)
+        #expect(response.body == nil)
+        #expect(isStopping)
+    }
+
+    @Test("An expired agent still answers stop")
+    func expiredAgentStops() async {
+        struct Empty: AgentServer {
+            var statusFields: [(label: String, value: String)] {
+                []
+            }
+
+            func perform(_: AgentRequest) async throws -> Data {
+                Data()
+            }
+        }
+        let connection = AgentConnection(
+            agent: Agent(name: "asa"),
+            server: Empty(),
+            reference: "op://Vault/Item",
+            expiresAt: Date().addingTimeInterval(-1)
+        )
+        let (response, isStopping) = await connection.respond(to: AgentRequest(command: .stop))
+        #expect(response.exitCode == 0)
+        #expect(response.message == "agent stopped")
+        #expect(isStopping)
+    }
+
     @Test("Responses take exit code and message from CLIError")
     func responseFromCLIError() {
         let response = AgentResponse(error: CLIError.blocked("no"))
