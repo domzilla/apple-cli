@@ -3,11 +3,10 @@ id: '261022-0WE2EFT'
 title: 'apple-ads skill: corrections from the live test'
 author: Dominic Rodemer
 created_at: '2026-10-22T08:05:22.383784Z'
-status: open
+status: closed
 labels:
 - task
 ---
-
 
 
 Fixes to `/Users/dom/Agents/Skills/apple-ads/` (Agents repo), all observed in the live test on 2026-10-22:
