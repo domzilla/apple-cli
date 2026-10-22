@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-22
+
 ### Added
 - `asa`, a client for the Apple Ads Platform API, is installed alongside `asc`: full campaign management, reports and insights through a background agent that keeps the key from 1Password in memory.
 - `asa` scopes every request to the ad account stored in the 1Password item and merges all pages of a query with `--paginate`.
