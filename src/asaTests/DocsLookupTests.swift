@@ -28,6 +28,12 @@ struct DocsLookupTests {
         DocsEndpoint(method: "GET", path: "/v1/campaigns/{id}", title: "Get a Campaign", page: "get-campaigns-_id_"),
         DocsEndpoint(method: "POST", path: "/v1/campaigns/{id}", title: "Fictional", page: "post-campaigns-_id_"),
         DocsEndpoint(method: "POST", path: "/v1/keywords/bulk-create", title: "Bulk Create Keywords", page: "x"),
+        DocsEndpoint(
+            method: "POST",
+            path: "/v1/recommendations/daily-budgets/apply",
+            title: "Apply Daily Budget Recommendations",
+            page: "apply-daily-budget-recommendations"
+        ),
     ]
 
     static var lookup: DocsLookup {
@@ -76,6 +82,19 @@ struct DocsLookupTests {
         #expect(properties["status"]?["type"] as? String == "CampaignStatus")
         #expect(properties["parent"]?["type"] as? String == "CampaignCreate")
         #expect(properties["parent"]?["properties"] == nil)
+    }
+
+    @Test("An array body keeps its brackets and resolves the element type's fields")
+    func showArrayBody() async throws {
+        let result = try await Self.json(Self.lookup.show(
+            method: "POST",
+            path: "/v1/recommendations/daily-budgets/apply"
+        ))
+        let body = try #require(result["requestBody"] as? [String: Any])
+        #expect(body["type"] as? String == "[ApplyDailyCapRecommendation]")
+        let properties = try #require(body["properties"] as? [String: [String: Any]])
+        #expect(properties["id"]?["type"] as? String == "string")
+        #expect(properties["id"]?["required"] as? Bool == true)
     }
 
     @Test("A method or path that isn't documented is a usage error")

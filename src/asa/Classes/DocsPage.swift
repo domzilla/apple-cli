@@ -70,16 +70,18 @@ struct DocsPage {
         }
     }
 
-    /// The type of the JSON body, such as `CampaignCreate`, and its page.
+    /// The type of the JSON body, such as `CampaignCreate` or `[ApplyDailyCapRecommendation]`, and the page of the
+    /// object or array element type.
     var bodyType: (name: String, page: String?)? {
         guard
             let section = self.sections.first(where: { $0["kind"] as? String == "restBody" }),
             let tokens = section["bodyContentType"] as? [[String: Any]],
-            let token = tokens.first(where: { $0["identifier"] != nil }) ?? tokens.first else
+            !tokens.isEmpty else
         {
             return nil
         }
-        return (token["text"] as? String ?? "", (token["identifier"] as? String).flatMap(self.pageName))
+        let page = tokens.compactMap { $0["identifier"] as? String }.first.flatMap(self.pageName)
+        return (self.typeName(tokens), page)
     }
 
     /// Status code to response type, such as `"200": "CampaignResponse"`.

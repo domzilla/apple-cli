@@ -106,6 +106,52 @@ enum DocsFixtures {
         ]
     }
 
+    static var applyDailyBudgetRecommendations: [String: Any] {
+        [
+            "metadata": ["title": "Apply Daily Budget Recommendations"],
+            "primaryContentSections": [
+                [
+                    "kind": "restEndpoint",
+                    "tokens": [
+                        ["kind": "method", "text": "POST"],
+                        ["kind": "baseURL", "text": "https://api.ads.apple.com/v1/"],
+                        ["kind": "path", "text": "recommendations/daily-budgets/apply"],
+                    ],
+                ],
+                [
+                    "kind": "restBody",
+                    "mimeType": "application/json",
+                    "bodyContentType": [
+                        ["kind": "text", "text": "["],
+                        [
+                            "identifier": prefix + "ApplyDailyCapRecommendation",
+                            "kind": "typeIdentifier",
+                            "text": "ApplyDailyCapRecommendation",
+                        ],
+                        ["kind": "text", "text": "]"],
+                    ],
+                ],
+            ],
+            "references": [
+                prefix + "ApplyDailyCapRecommendation": reference(
+                    "ApplyDailyCapRecommendation",
+                    url: "applydailycaprecommendation",
+                    title: "ApplyDailyCapRecommendation"
+                ),
+            ],
+        ]
+    }
+
+    static var applyDailyCapRecommendation: [String: Any] {
+        [
+            "metadata": ["title": "ApplyDailyCapRecommendation"],
+            "primaryContentSections": [[
+                "kind": "properties",
+                "items": [["name": "id", "required": true, "type": [["kind": "text", "text": "string"]]]],
+            ]],
+        ]
+    }
+
     static var getCampaign: [String: Any] {
         [
             "metadata": ["title": "Get a Campaign"],
@@ -198,6 +244,8 @@ enum DocsFixtures {
             "get-campaigns-_id_": getCampaign,
             "campaigncreate": campaignCreate,
             "campaignstatus": campaignStatus,
+            "apply-daily-budget-recommendations": applyDailyBudgetRecommendations,
+            "applydailycaprecommendation": applyDailyCapRecommendation,
         ]
     }
 
