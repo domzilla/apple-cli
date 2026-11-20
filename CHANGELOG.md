@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `asc` allows writes again with Apple's API spec 4.6.1, after its new endpoints were reviewed against the blocklist.
+
+### Security
+- `asc` refuses write requests that carry quantity-based subscription price tiers, so subscription prices can't be changed through an ordinary subscription edit.
+
 ## [1.3.0] - 2026-10-22
 
 ### Added

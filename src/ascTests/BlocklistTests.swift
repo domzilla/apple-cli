@@ -275,6 +275,7 @@ struct BlocklistTests {
         "inAppPurchasePrices",
         "inAppPurchasePriceSchedules",
         "subscriptionPrices",
+        "subscriptionPriceTiers",
         "territoryAvailabilities",
         "appAvailabilities",
     ]

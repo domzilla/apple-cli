@@ -136,6 +136,7 @@ enum Blocklist {
         "inAppPurchasePrices",
         "inAppPurchasePriceSchedules",
         "subscriptionPrices",
+        "subscriptionPriceTiers",
         "territoryAvailabilities",
         "appAvailabilities",
     ]

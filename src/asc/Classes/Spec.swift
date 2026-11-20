@@ -14,8 +14,8 @@ import Foundation
 /// blocklist was reviewed against, so new endpoints can't slip through unreviewed.
 struct Spec {
     /// Bump both only after reviewing the new spec's write endpoints against `Blocklist`.
-    static let reviewedVersion = "4.5.1"
-    static let reviewedSHA256 = "7518d3a94a8bd701ac25c1c601b95b8f53aad92091affb15a2a9d331713dac1a"
+    static let reviewedVersion = "4.6.1"
+    static let reviewedSHA256 = "ba2ab338aa3ecb68948aefa5514d56d22df933422b9d8b5b25f17569e0d3e259"
 
     static let checkInterval: TimeInterval = 24 * 60 * 60
     static let specFileName = "openapi.oas.json"
